@@ -1,0 +1,44 @@
+{
+	"schemaVersion": 1,
+	"id": "clankercraft",
+	"version": "${version}",
+	"name": "ClankerCraft",
+	"description": "This is ClankerCraft! Your go-to place for all things AI in minecraft... Without limitations!",
+	"authors": [
+		"Max Willemsen", "Zeb Josephus Jitta", "DJ"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/clankercraft/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"clanker.craft.ClankerCraft"
+		],
+		"client": [
+			"clanker.craft.ClankerCraftClient"
+		],
+		"fabric-datagen": [
+			"clanker.craft.ClankerCraftDataGenerator"
+		]
+	},
+	"mixins": [
+		"clankercraft.mixins.json",
+		{
+			"config": "clankercraft.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.17.2",
+		"minecraft": "~1.21.9",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}
