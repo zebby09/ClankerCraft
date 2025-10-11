@@ -2,7 +2,10 @@ package clanker.craft.chat;
 
 import clanker.craft.entity.DiazJaquetEntity;
 import clanker.craft.llm.LlmClient;
+import clanker.craft.network.NetworkConstants;
+import clanker.craft.network.TtsSpeakS2CPayload;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.MinecraftServer;
@@ -133,6 +136,9 @@ public final class ChatInteraction {
                                 session.appendModel(reply);
                                 session.busy = false;
                                 player.sendMessage(Text.literal("DiazJaquet: " + reply));
+
+                                // Also trigger client-side TTS playback using a custom payload
+                                ServerPlayNetworking.send(player, new TtsSpeakS2CPayload(reply));
                             });
                         });
 

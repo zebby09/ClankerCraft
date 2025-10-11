@@ -19,7 +19,7 @@
 			"clanker.craft.ClankerCraft"
 		],
 		"client": [
-			"clanker.craft.ClankerCraftClient"
+			"clanker.craft.client.ClankerCraftClient"
 		],
 		"fabric-datagen": [
 			"clanker.craft.ClankerCraftDataGenerator"
