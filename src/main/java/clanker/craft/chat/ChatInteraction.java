@@ -94,8 +94,7 @@ public final class ChatInteraction {
                     nearest.getNavigation().startMovingTo(player, MOVE_SPEED);
                     setSession(player, nearest);
 
-                    int dist = (int) Math.sqrt(nearest.squaredDistanceTo(p));
-                    player.sendMessage(Text.literal("DiazJaquet is coming to you (" + dist + "m). Conversing mode enabled. Type '@byebye' to end."));
+                    // Replaced the old distance message with the greeting handled in setSession()
                     return;
                 }
 
@@ -209,11 +208,12 @@ public final class ChatInteraction {
         // mark that we should freeze the mob once it reaches the player
         s.awaitingFreeze = true;
         s.lastPathTick = tickCounter;
-        // Optional: small system priming via initial history by adding a first model/user line
-        s.appendModel("What's up?");
+        // Send greeting as the initial model line and to the player, and speak it via TTS
+        String greeting = "What's up my clanker!";
+        s.appendModel(greeting);
         SESSIONS.put(player.getUuid(), s);
-        // Send opening message to the player
-        player.sendMessage(net.minecraft.text.Text.literal("DiazJaquet: What's up?"));
+        player.sendMessage(Text.literal(greeting));
+        ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(greeting, mob.getId()));
     }
 
     private static DiazJaquetEntity findMobByUuid(ServerWorld world, UUID uuid) {
