@@ -6,6 +6,7 @@ import clanker.craft.network.NetworkConstants;
 import clanker.craft.network.TtsSpeakS2CPayload;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.MinecraftServer;
@@ -23,8 +24,10 @@ public final class ChatInteraction {
 
     private static final String TRIGGER = "@diazjaquet"; // case-insensitive match
     private static final String BYE_TRIGGER = "@byebye"; // end conversation
-    private static final double SEARCH_RANGE = 64.0; // blocks
+    private static final double SEARCH_RANGE = 256.0; // increased search range in blocks
     private static final double MOVE_SPEED = 1.2; // navigation speed
+    private static final double ARRIVE_DISTANCE = 2.5; // when considered arrived to freeze
+    private static final int PATH_REFRESH_TICKS = 20; // reissue path each second while approaching
 
     // Conversation state per player
     private static final Map<UUID, Session> SESSIONS = new ConcurrentHashMap<>();
@@ -39,6 +42,8 @@ public final class ChatInteraction {
             },
             new ThreadPoolExecutor.CallerRunsPolicy()
     );
+
+    private static int tickCounter = 0;
 
     // Accessors for initializer logging
     public static boolean isLlmEnabled() { return LLM.isEnabled(); }
@@ -78,6 +83,13 @@ public final class ChatInteraction {
                         return;
                     }
 
+                    // Unfreeze any previously selected mob for this player
+                    Session existing = SESSIONS.get(player.getUuid());
+                    if (existing != null) {
+                        DiazJaquetEntity prev = findMobByUuid(world, existing.mobUuid);
+                        if (prev != null) prev.setAiDisabled(false);
+                    }
+
                     // Move mob to the player and set session
                     nearest.getNavigation().startMovingTo(player, MOVE_SPEED);
                     setSession(player, nearest);
@@ -91,6 +103,11 @@ public final class ChatInteraction {
                 if (lower.startsWith(BYE_TRIGGER)) {
                     Session s = SESSIONS.remove(player.getUuid());
                     if (s != null) {
+                        // Try to unfreeze the mob if still around
+                        DiazJaquetEntity mob = findMobByUuid((ServerWorld) player.getEntityWorld(), s.mobUuid);
+                        if (mob != null) {
+                            mob.setAiDisabled(false);
+                        }
                         player.sendMessage(Text.literal("DiazJaquet: bye! (conversation ended)"));
                     }
                     return;
@@ -137,8 +154,10 @@ public final class ChatInteraction {
                                 session.busy = false;
                                 player.sendMessage(Text.literal("DiazJaquet: " + reply));
 
-                                // Also trigger client-side TTS playback using a custom payload
-                                ServerPlayNetworking.send(player, new TtsSpeakS2CPayload(reply));
+                                // Also trigger client-side TTS playback using a custom payload with entity position context
+                                DiazJaquetEntity m = findMobByUuid(world, session.mobUuid);
+                                int entityId = (m == null) ? -1 : m.getId();
+                                ServerPlayNetworking.send(player, new TtsSpeakS2CPayload(reply, entityId));
                             });
                         });
 
@@ -146,10 +165,45 @@ public final class ChatInteraction {
                 // Be robust and avoid breaking chat
             }
         });
+
+        // Periodic server tick: keep mobs walking to players and freeze upon arrival
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            tickCounter++;
+            if (SESSIONS.isEmpty()) return;
+
+            for (Map.Entry<UUID, Session> entry : SESSIONS.entrySet()) {
+                UUID playerId = entry.getKey();
+                Session s = entry.getValue();
+                ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
+                if (player == null) continue; // offline
+
+                ServerWorld world = (ServerWorld) player.getEntityWorld();
+                DiazJaquetEntity mob = findMobByUuid(world, s.mobUuid);
+                if (mob == null || !mob.isAlive()) continue;
+
+                double distSq = mob.squaredDistanceTo(player);
+                if (s.awaitingFreeze) {
+                    // Re-issue path every PATH_REFRESH_TICKS until arrived
+                    if ((tickCounter - s.lastPathTick) >= PATH_REFRESH_TICKS) {
+                        s.lastPathTick = tickCounter;
+                        mob.getNavigation().startMovingTo(player, MOVE_SPEED);
+                    }
+                    if (distSq <= (ARRIVE_DISTANCE * ARRIVE_DISTANCE)) {
+                        mob.setAiDisabled(true); // freeze in place
+                        s.awaitingFreeze = false; // now frozen until @byebye
+                        // Optionally, face the player
+                        mob.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, player.getEyePos());
+                    }
+                }
+            }
+        });
     }
 
     private static void setSession(ServerPlayerEntity player, DiazJaquetEntity mob) {
         Session s = new Session(mob.getUuid());
+        // mark that we should freeze the mob once it reaches the player
+        s.awaitingFreeze = true;
+        s.lastPathTick = tickCounter;
         // Optional: small system priming via initial history by adding a first model/user line
         s.appendModel("What's up?");
         SESSIONS.put(player.getUuid(), s);
@@ -169,6 +223,9 @@ public final class ChatInteraction {
         final Deque<String> history = new ArrayDeque<>(); // keep as ring buffer
         private static final int MAX_TURNS = 20; // max entries in history deque
         volatile boolean busy = false;
+        // freeze-on-arrival state
+        volatile boolean awaitingFreeze = false;
+        int lastPathTick = 0;
 
         Session(UUID mobUuid) { this.mobUuid = mobUuid; }
 

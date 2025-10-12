@@ -3,6 +3,7 @@ package clanker.craft.client;
 import clanker.craft.network.TtsSpeakS2CPayload;
 import clanker.craft.registry.ModEntities;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -16,8 +17,12 @@ public class ClankerCraftClient implements ClientModInitializer {
         // Register typed receiver
         ClientPlayNetworking.registerGlobalReceiver(TtsSpeakS2CPayload.ID, (payload, context) -> {
             String text = payload.text();
-            context.client().execute(() -> ClientTts.get().speakAsync(context.client(), text));
+            int entityId = payload.entityId();
+            context.client().execute(() -> ClientTts.get().speakAsync(context.client(), text, entityId));
         });
+
+        // Tick to cleanup OpenAL sources
+        ClientTickEvents.END_CLIENT_TICK.register(client -> ClientTts.get().tick(client));
 
         // Register renderer for DiazJaquet entity (reuse vanilla Illusioner renderer)
         EntityRendererRegistry.register(ModEntities.DIAZ_JAQUET, IllusionerEntityRenderer::new);

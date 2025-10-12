@@ -4,7 +4,11 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.Entity;
 import net.minecraft.text.Text;
+import net.minecraft.util.math.Vec3d;
+import org.lwjgl.BufferUtils;
+import org.lwjgl.openal.AL10;
 
 import javax.sound.sampled.*;
 import java.io.ByteArrayInputStream;
@@ -13,15 +17,14 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Base64;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Function;
 
 public final class ClientTts {
     private static final ClientTts INSTANCE = new ClientTts();
@@ -37,9 +40,33 @@ public final class ClientTts {
 
     private volatile boolean quotaExceeded = false;
 
+    // Track active OpenAL sources for cleanup on client ticks (must run on client thread)
+    private final List<int[]> activeAl = new ArrayList<>(); // entries: {sourceId, bufferId}
+
     private ClientTts() {}
 
+    // Called from client tick (registered in client init)
+    public void tick(MinecraftClient client) {
+        // Clean up finished sources
+        for (Iterator<int[]> it = activeAl.iterator(); it.hasNext();) {
+            int[] pair = it.next();
+            int src = pair[0];
+            int state = AL10.alGetSourcei(src, AL10.AL_SOURCE_STATE);
+            if (state == AL10.AL_STOPPED) {
+                AL10.alDeleteSources(src);
+                AL10.alDeleteBuffers(pair[1]);
+                it.remove();
+            }
+        }
+    }
+
+    // Backward-compatible entry point (non-positional)
     public void speakAsync(MinecraftClient client, String text) {
+        speakAsync(client, text, -1);
+    }
+
+    // New entry point with positional playback via entityId (if available)
+    public void speakAsync(MinecraftClient client, String text, int entityId) {
         if (quotaExceeded) {
             notifyClient(client, "TTS quota exceeded. Playing chat only.");
             return;
@@ -51,7 +78,15 @@ public final class ClientTts {
                     notifyClient(client, "TTS unavailable for this response.");
                     return;
                 }
-                playPcm(pcm);
+                // Schedule OpenAL playback on client thread
+                client.execute(() -> {
+                    try {
+                        playOpenAlAtEntity(client, pcm, entityId);
+                    } catch (Throwable alErr) {
+                        // Fallback to Java Sound if OpenAL fails
+                        try { playPcm(pcm); } catch (Exception ignored) {}
+                    }
+                });
             } catch (QuotaException qe) {
                 quotaExceeded = true;
                 notifyClient(client, "TTS quota exceeded. Further audio will be skipped today.");
@@ -59,6 +94,44 @@ public final class ClientTts {
                 notifyClient(client, "TTS error: " + e.getMessage());
             }
         });
+    }
+
+    private void playOpenAlAtEntity(MinecraftClient client, PcmAudio a, int entityId) {
+        Entity src = (client != null && client.world != null && entityId >= 0) ? client.world.getEntityById(entityId) : null;
+        // Prepare OpenAL buffer
+        int buffer = AL10.alGenBuffers();
+        ByteBuffer bb = BufferUtils.createByteBuffer(a.data.length);
+        bb.put(a.data).flip();
+        // Mono 16-bit little endian PCM
+        int format = (a.channels == 1) ? AL10.AL_FORMAT_MONO16 : AL10.AL_FORMAT_STEREO16;
+        AL10.alBufferData(buffer, format, bb, a.sampleRate);
+
+        int source = AL10.alGenSources();
+        AL10.alSourcei(source, AL10.AL_BUFFER, buffer);
+        // Reference distance and rolloff to feel like Minecraft
+        AL10.alSourcef(source, AL10.AL_REFERENCE_DISTANCE, 2.0f);
+        AL10.alSourcef(source, AL10.AL_ROLLOFF_FACTOR, 1.0f);
+        AL10.alSourcef(source, AL10.AL_MAX_DISTANCE, 64.0f);
+        AL10.alSourcei(source, AL10.AL_SOURCE_RELATIVE, AL10.AL_FALSE);
+
+        float sx, sy, sz;
+        if (src != null) {
+            sx = (float) src.getX();
+            sy = (float) (src.getY() + src.getStandingEyeHeight());
+            sz = (float) src.getZ();
+        } else if (client != null && client.player != null) {
+            // Fallback: play at player position
+            sx = (float) client.player.getX();
+            sy = (float) client.player.getEyeY();
+            sz = (float) client.player.getZ();
+        } else {
+            sx = sy = sz = 0f;
+        }
+        AL10.alSource3f(source, AL10.AL_POSITION, sx, sy, sz);
+
+        AL10.alSourcePlay(source);
+        // Track for cleanup
+        activeAl.add(new int[]{source, buffer});
     }
 
     private static void notifyClient(MinecraftClient client, String msg) {
@@ -125,6 +198,7 @@ public final class ClientTts {
         AudioFormat format = new AudioFormat(a.sampleRate, 16, a.channels, true, false); // little-endian
         Clip clip = AudioSystem.getClip();
         clip.open(format, a.data, 0, a.data.length);
+        clip.addLineListener(event -> { if (event.getType() == LineEvent.Type.STOP) clip.close(); });
         clip.start();
     }
 
@@ -149,6 +223,10 @@ public final class ClientTts {
         } catch (Throwable ignored) {
             return null;
         }
+    }
+
+    private static double clamp(double v, double lo, double hi) {
+        return (v < lo) ? lo : (v > hi) ? hi : v;
     }
 
     private static final class QuotaException extends Exception {}
