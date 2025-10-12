@@ -3,6 +3,7 @@ package clanker.craft.chat;
 import clanker.craft.entity.DiazJaquetEntity;
 import clanker.craft.llm.LLMClient;
 import clanker.craft.network.TTSSpeakS2CPayload;
+import clanker.craft.personality.PersonalityManager;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -21,8 +22,8 @@ import java.util.concurrent.*;
 public final class ChatInteraction {
     private ChatInteraction() {}
 
-    private static final String TRIGGER = "@clanker"; // case-insensitive match
-    private static final String BYE_TRIGGER = "@bye"; // end conversation
+    private static final String TRIGGER = "@diazjaquet"; // case-insensitive match
+    private static final String BYE_TRIGGER = "@byebye"; // end conversation
     private static final double SEARCH_RANGE = 256.0; // increased search range in blocks
     private static final double MOVE_SPEED = 1.2; // navigation speed
     private static final double ARRIVE_DISTANCE = 2.5; // when considered arrived to freeze
@@ -78,7 +79,7 @@ public final class ChatInteraction {
                             .orElse(null);
 
                     if (nearest == null) {
-                        player.sendMessage(Text.literal("No Clanker nearby (" + (int) SEARCH_RANGE + "m)."));
+                        player.sendMessage(Text.literal("No DiazJaquet nearby (" + (int) SEARCH_RANGE + "m)."));
                         return;
                     }
 
@@ -94,7 +95,7 @@ public final class ChatInteraction {
                     setSession(player, nearest);
 
                     int dist = (int) Math.sqrt(nearest.squaredDistanceTo(p));
-                    player.sendMessage(Text.literal("Clanker is coming to you (" + dist + "m). Conversing mode enabled. Type '@byebye' to end."));
+                    player.sendMessage(Text.literal("DiazJaquet is coming to you (" + dist + "m). Conversing mode enabled. Type '@byebye' to end."));
                     return;
                 }
 
@@ -107,7 +108,7 @@ public final class ChatInteraction {
                         if (mob != null) {
                             mob.setAiDisabled(false);
                         }
-                        player.sendMessage(Text.literal("Clanker: bye! (conversation ended)"));
+                        player.sendMessage(Text.literal("DiazJaquet: bye! (conversation ended)"));
                     }
                     return;
                 }
@@ -120,7 +121,7 @@ public final class ChatInteraction {
                 DiazJaquetEntity mob = findMobByUuid(world, session.mobUuid);
                 if (mob == null || !mob.isAlive()) {
                     SESSIONS.remove(player.getUuid());
-                    player.sendMessage(Text.literal("Clanker is no longer here. Conversation ended."));
+                    player.sendMessage(Text.literal("DiazJaquet is no longer here. Conversation ended."));
                     return;
                 }
 
@@ -128,12 +129,12 @@ public final class ChatInteraction {
                 session.appendUser(trimmed);
                 if (!LLM.isEnabled()) {
                     String cfgPath = String.valueOf(FabricLoader.getInstance().getConfigDir().resolve("clankercraft-llm.properties").toAbsolutePath());
-                    player.sendMessage(Text.literal("Clanker (LLM disabled): Provide GOOGLE_AI_API_KEY via env var, JVM -DGOOGLE_AI_API_KEY, or create " + cfgPath + ". Then restart."));
+                    player.sendMessage(Text.literal("DiazJaquet (LLM disabled): Provide GOOGLE_AI_API_KEY via env var, JVM -DGOOGLE_AI_API_KEY, or create " + cfgPath + ". Then restart."));
                     return;
                 }
 
                 if (session.busy) {
-                    player.sendMessage(Text.literal("Clanker is thinking... please wait."));
+                    player.sendMessage(Text.literal("DiazJaquet is thinking... please wait."));
                     return;
                 }
                 session.busy = true;
@@ -151,7 +152,7 @@ public final class ChatInteraction {
                             server.execute(() -> {
                                 session.appendModel(reply);
                                 session.busy = false;
-                                player.sendMessage(Text.literal("Clanker: " + reply));
+                                player.sendMessage(Text.literal("DiazJaquet: " + reply));
 
                                 // Also trigger client-side TTS playback using a custom payload with entity position context
                                 DiazJaquetEntity m = findMobByUuid(world, session.mobUuid);
@@ -189,7 +190,7 @@ public final class ChatInteraction {
                     }
                     if (distSq <= (ARRIVE_DISTANCE * ARRIVE_DISTANCE)) {
                         mob.setAiDisabled(true); // freeze in place
-                        s.awaitingFreeze = false; // now frozen until @bye
+                        s.awaitingFreeze = false; // now frozen until @byebye
                         // Optionally, face the player
                         mob.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, player.getEyePos());
                     }
@@ -200,6 +201,11 @@ public final class ChatInteraction {
 
     private static void setSession(ServerPlayerEntity player, DiazJaquetEntity mob) {
         Session s = new Session(mob.getUuid());
+        // Inject active personality as a system instruction to steer the LLM
+        String persona = PersonalityManager.getActivePersonalityText();
+        if (persona != null && !persona.isBlank()) {
+            s.appendSystem(persona);
+        }
         // mark that we should freeze the mob once it reaches the player
         s.awaitingFreeze = true;
         s.lastPathTick = tickCounter;
@@ -207,7 +213,7 @@ public final class ChatInteraction {
         s.appendModel("What's up?");
         SESSIONS.put(player.getUuid(), s);
         // Send opening message to the player
-        player.sendMessage(net.minecraft.text.Text.literal("Clanker: What's up?"));
+        player.sendMessage(net.minecraft.text.Text.literal("DiazJaquet: What's up?"));
     }
 
     private static DiazJaquetEntity findMobByUuid(ServerWorld world, UUID uuid) {
@@ -228,13 +234,9 @@ public final class ChatInteraction {
 
         Session(UUID mobUuid) { this.mobUuid = mobUuid; }
 
-        void appendUser(String text) {
-            add("user: " + text);
-        }
-
-        void appendModel(String text) {
-            add("model: " + text);
-        }
+        void appendUser(String text) { add("user: " + text); }
+        void appendModel(String text) { add("model: " + text); }
+        void appendSystem(String text) { add("system: " + text); }
 
         private void add(String turn) {
             // Keep last MAX_TURNS entries
