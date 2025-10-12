@@ -159,20 +159,25 @@ public final class ClientTTS {
         String lang = resolve("TTS_LANGUAGE_CODE");
         if (lang == null || lang.isBlank()) lang = "en-US";
         voice.addProperty("languageCode", lang);
-        String voiceName = resolve("TTS_VOICE_NAME"); // e.g., "en-US-Neural2-C"
+        String voiceName = resolve("TTS_VOICE_NAME"); // e.g., "en-US-Chirp-HD-F"
         if (voiceName != null && !voiceName.isBlank()) voice.addProperty("name", voiceName);
         body.add("voice", voice);
 
         JsonObject audioCfg = new JsonObject();
         audioCfg.addProperty("audioEncoding", "LINEAR16");
         audioCfg.addProperty("sampleRateHertz", rate);
-        String rateStr = resolve("TTS_SPEAKING_RATE");
-        if (rateStr != null && !rateStr.isBlank()) {
-            try { audioCfg.addProperty("speakingRate", Double.parseDouble(rateStr)); } catch (NumberFormatException ignored) {}
-        }
-        String pitchStr = resolve("TTS_PITCH");
-        if (pitchStr != null && !pitchStr.isBlank()) {
-            try { audioCfg.addProperty("pitch", Double.parseDouble(pitchStr)); } catch (NumberFormatException ignored) {}
+
+        // Chirp 3: HD voices (e.g., en-US-Chirp-HD-F) do not support speakingRate/pitch.
+        boolean isChirp = voiceName != null && voiceName.toLowerCase().contains("chirp");
+        if (!isChirp) {
+            String rateStr = resolve("TTS_SPEAKING_RATE");
+            if (rateStr != null && !rateStr.isBlank()) {
+                try { audioCfg.addProperty("speakingRate", Double.parseDouble(rateStr)); } catch (NumberFormatException ignored) {}
+            }
+            String pitchStr = resolve("TTS_PITCH");
+            if (pitchStr != null && !pitchStr.isBlank()) {
+                try { audioCfg.addProperty("pitch", Double.parseDouble(pitchStr)); } catch (NumberFormatException ignored) {}
+            }
         }
         body.add("audioConfig", audioCfg);
 
