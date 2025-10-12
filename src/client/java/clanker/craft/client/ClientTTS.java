@@ -6,12 +6,10 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.text.Text;
-import net.minecraft.util.math.Vec3d;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.openal.AL10;
 
 import javax.sound.sampled.*;
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -26,10 +24,12 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public final class ClientTts {
-    private static final ClientTts INSTANCE = new ClientTts();
-    public static ClientTts get() { return INSTANCE; }
 
+public final class ClientTTS {
+    private static final ClientTTS INSTANCE = new ClientTTS();
+    public static ClientTTS get() { return INSTANCE; }
+
+    // HTTP client and executor service
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ExecutorService exec = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "DiazJaquet-TTS");
@@ -43,7 +43,7 @@ public final class ClientTts {
     // Track active OpenAL sources for cleanup on client ticks (must run on client thread)
     private final List<int[]> activeAl = new ArrayList<>(); // entries: {sourceId, bufferId}
 
-    private ClientTts() {}
+    private ClientTTS() {}
 
     // Called from client tick (registered in client init)
     public void tick(MinecraftClient client) {

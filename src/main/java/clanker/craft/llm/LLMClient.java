@@ -6,7 +6,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.fabricmc.loader.api.FabricLoader;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -26,7 +25,7 @@ import java.util.Properties;
  * 2) Environment variables: GOOGLE_AI_API_KEY and GEMINI_MODEL
  * 3) Config file: ${fabricConfigDir}/clankercraft-llm.properties with keys GOOGLE_AI_API_KEY and GEMINI_MODEL
  */
-public class LlmClient {
+public class LLMClient {
     private static final Gson GSON = new Gson();
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
 
@@ -34,7 +33,7 @@ public class LlmClient {
     private final String apiKey;
     private final String model;
 
-    public LlmClient() {
+    public LLMClient() {
         this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
         this.apiKey = resolveApiKey();
         String m = resolveModel();

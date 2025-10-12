@@ -14,11 +14,9 @@ public class ClankerCraft implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		// Register entity attributes and items (spawn egg)
+		// Register entities, items, and chat interaction
 		ModEntities.registerAttributes();
 		ModItems.register();
-
-		// Register chat trigger: "@DiazJaquet" makes nearest DiazJaquet come to the player and enables conversing
 		ChatInteraction.register();
 
 		if (ChatInteraction.isLlmEnabled()) {

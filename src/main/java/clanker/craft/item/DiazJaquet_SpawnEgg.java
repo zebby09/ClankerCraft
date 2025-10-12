@@ -17,7 +17,6 @@ public class DiazJaquet_SpawnEgg extends SpawnEggItem {
 
     @Override
     public EntityType<?> getEntityType(ItemStack stack) {
-        // Always spawn our DiazJaquet entity regardless of stack components
         return ModEntities.DIAZ_JAQUET;
     }
 }
