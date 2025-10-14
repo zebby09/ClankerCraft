@@ -163,6 +163,13 @@ public final class ChatInteraction {
                                         player.sendMessage(Text.literal("DiazJaquet: failed to make painting: " + result.substring(8)));
                                     } else {
                                         player.sendMessage(Text.literal("DiazJaquet: saved painting to " + result));
+                                        // Update the painting texture
+                                        try {
+                                            ImagenClient.updatePaintingTexture(java.nio.file.Path.of(result));
+                                            player.sendMessage(Text.literal("DiazJaquet: painting texture updated! Press F3+T to reload and see it."));
+                                        } catch (Exception e) {
+                                            player.sendMessage(Text.literal("DiazJaquet: saved but failed to update texture: " + e.getMessage()));
+                                        }
                                     }
                                 });
                             });
@@ -231,7 +238,7 @@ public final class ChatInteraction {
                     if ((tickCounter - s.lastPathTick) >= PATH_REFRESH_TICKS) {
                         s.lastPathTick = tickCounter;
                         mob.getNavigation().startMovingTo(player, MOVE_SPEED);
-                    }
+                      }
                     if (distSq <= (ARRIVE_DISTANCE * ARRIVE_DISTANCE)) {
                         mob.setAiDisabled(true); // freeze in place
                         s.awaitingFreeze = false; // now frozen until @byebye

@@ -10,6 +10,10 @@ import net.fabricmc.loader.api.FabricLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.imageio.ImageIO;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -129,7 +133,7 @@ public final class ImagenClient {
         }
 
         // If still not found and lastStatus was 404, attempt well-known Imagen model identifiers as fallback
-        if ((imageBytes == null || imageBytes.length == 0) && lastStatus == 404) {
+        if ((imageBytes == null || imageBytes.length > 0) && lastStatus == 404) {
             String[] fallbackModels = new String[]{
                     "imagen-3.0-generate-001",
                     "imagen-3.0-fast-generate-001",
@@ -305,4 +309,71 @@ public final class ImagenClient {
     }
 
     private static String truncate(String s, int max) { return (s.length() <= max) ? s : s.substring(0, max) + "..."; }
+
+    /**
+     * Updates the fighters.png painting texture with the given image file, resized to 32x32.
+     */
+    public static void updatePaintingTexture(Path sourceImagePath) {
+        try {
+            // Read the source image
+            BufferedImage sourceImage = ImageIO.read(sourceImagePath.toFile());
+            if (sourceImage == null) {
+                LOGGER.warn("Failed to read image from {}", sourceImagePath);
+                return;
+            }
+
+            // Resize to 32x32 (standard size for 2x2 Minecraft paintings)
+            BufferedImage resized = resizeImage(sourceImage, 32, 32);
+
+            Path gameDir = FabricLoader.getInstance().getGameDir();
+
+            // 1. Update source code resources (for next rebuild)
+            Path srcResourcesDir = gameDir.getParent()
+                    .resolve("src")
+                    .resolve("main")
+                    .resolve("resources")
+                    .resolve("assets")
+                    .resolve("minecraft")
+                    .resolve("textures")
+                    .resolve("painting");
+
+            Files.createDirectories(srcResourcesDir);
+            Path srcTargetPath = srcResourcesDir.resolve("fighters.png");
+            ImageIO.write(resized, "PNG", srcTargetPath.toFile());
+            LOGGER.info("Updated source painting texture: {}", srcTargetPath.toAbsolutePath());
+
+            // 2. Update runtime build output (for immediate F3+T reload)
+            Path buildResourcesDir = gameDir.getParent()
+                    .resolve("build")
+                    .resolve("resources")
+                    .resolve("main")
+                    .resolve("assets")
+                    .resolve("minecraft")
+                    .resolve("textures")
+                    .resolve("painting");
+
+            if (Files.exists(buildResourcesDir.getParent().getParent().getParent())) {
+                Files.createDirectories(buildResourcesDir);
+                Path buildTargetPath = buildResourcesDir.resolve("fighters.png");
+                ImageIO.write(resized, "PNG", buildTargetPath.toFile());
+                LOGGER.info("Updated build painting texture: {}", buildTargetPath.toAbsolutePath());
+                LOGGER.info("Press F3+T in-game to reload and see the new painting!");
+            } else {
+                LOGGER.warn("Build directory not found, only source was updated");
+            }
+
+        } catch (Exception e) {
+            LOGGER.error("Failed to update painting texture from {}: {}", sourceImagePath, e.getMessage());
+        }
+    }
+
+
+    private static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
+        BufferedImage resizedImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = resizedImage.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
+        g.dispose();
+        return resizedImage;
+    }
 }
