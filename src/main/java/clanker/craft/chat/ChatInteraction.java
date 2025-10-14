@@ -167,6 +167,14 @@ public final class ChatInteraction {
                                         try {
                                             ImagenClient.updatePaintingTexture(java.nio.file.Path.of(result));
                                             player.sendMessage(Text.literal("DiazJaquet: painting texture updated! Press F3+T to reload and see it."));
+
+                                            // Drop a painting item at the mob's location
+                                            DiazJaquetEntity diaz = findMobByUuid(world, session.mobUuid);
+                                            if (diaz != null && diaz.isAlive()) {
+                                                // Just drop a regular painting - the Match variant texture is already updated
+                                                diaz.dropStack(world, new net.minecraft.item.ItemStack(net.minecraft.item.Items.PAINTING));
+                                                player.sendMessage(Text.literal("DiazJaquet: here's your painting! Place it and cycle to the Match variant."));
+                                            }
                                         } catch (Exception e) {
                                             player.sendMessage(Text.literal("DiazJaquet: saved but failed to update texture: " + e.getMessage()));
                                         }
