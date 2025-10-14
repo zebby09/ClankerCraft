@@ -4,6 +4,7 @@ import clanker.craft.entity.DiazJaquetEntity;
 import clanker.craft.llm.LLMClient;
 import clanker.craft.network.TTSSpeakS2CPayload;
 import clanker.craft.personality.PersonalityManager;
+import clanker.craft.imagen.ImagenClient;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -24,6 +25,7 @@ public final class ChatInteraction {
 
     private static final String TRIGGER = "@diazjaquet"; // case-insensitive match
     private static final String BYE_TRIGGER = "@byebye"; // end conversation
+    private static final String PAINT_TRIGGER = "@makepainting"; // case-insensitive
     private static final double SEARCH_RANGE = 256.0; // increased search range in blocks
     private static final double MOVE_SPEED = 1.2; // navigation speed
     private static final double ARRIVE_DISTANCE = 2.5; // when considered arrived to freeze
@@ -32,6 +34,7 @@ public final class ChatInteraction {
     // Conversation state per player
     private static final Map<UUID, Session> SESSIONS = new ConcurrentHashMap<>();
     private static final LLMClient LLM = new LLMClient();
+    private static final ImagenClient IMAGEN = new ImagenClient();
     private static final ExecutorService EXEC = new ThreadPoolExecutor(
             1, 2, 30, TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(64),
@@ -47,6 +50,7 @@ public final class ChatInteraction {
 
     // Accessors for initializer logging
     public static boolean isLlmEnabled() { return LLM.isEnabled(); }
+    public static boolean isImagenEnabled() { return IMAGEN.isEnabled(); }
     public static String llmModel() { return LLM.getModel(); }
 
     public static void register() {
@@ -122,6 +126,47 @@ public final class ChatInteraction {
                     SESSIONS.remove(player.getUuid());
                     player.sendMessage(Text.literal("DiazJaquet is no longer here. Conversation ended."));
                     return;
+                }
+
+                // Handle @makepainting command within active conversation
+                if (lower.startsWith(PAINT_TRIGGER)) {
+                    // Extract prompt after the trigger
+                    String prompt = trimmed.substring(PAINT_TRIGGER.length()).trim();
+                    if (!IMAGEN.isEnabled()) {
+                        String cfgPath = String.valueOf(FabricLoader.getInstance().getConfigDir().resolve("clankercraft-llm.properties").toAbsolutePath());
+                        player.sendMessage(Text.literal("Imagen not configured. Ensure GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID and GCP_LOCATION are set in " + cfgPath));
+                        return;
+                    }
+                    if (prompt.isEmpty()) {
+                        player.sendMessage(Text.literal("Usage: @MakePainting <prompt>"));
+                        return;
+                    }
+                    if (session.busy) {
+                        player.sendMessage(Text.literal("DiazJaquet is busy. Please wait..."));
+                        return;
+                    }
+                    session.busy = true;
+                    player.sendMessage(Text.literal("DiazJaquet: generating a painting for '" + prompt + "'..."));
+
+                    CompletableFuture
+                            .supplyAsync(() -> {
+                                try {
+                                    return IMAGEN.generateAndSave(prompt).toAbsolutePath().toString();
+                                } catch (Exception e) {
+                                    return "(error) " + e.getMessage();
+                                }
+                            }, EXEC)
+                            .thenAcceptAsync(result -> {
+                                server.execute(() -> {
+                                    session.busy = false;
+                                    if (result.startsWith("(error) ")) {
+                                        player.sendMessage(Text.literal("DiazJaquet: failed to make painting: " + result.substring(8)));
+                                    } else {
+                                        player.sendMessage(Text.literal("DiazJaquet: saved painting to " + result));
+                                    }
+                                });
+                            });
+                    return; // do not pass this message to the LLM
                 }
 
                 // Append user turn and call LLM off-thread

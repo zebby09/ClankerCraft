@@ -25,6 +25,12 @@ public class ClankerCraft implements ModInitializer {
 			LOGGER.warn("ClankerCraft: LLM disabled. Provide GOOGLE_AI_API_KEY via env var, JVM -DGOOGLE_AI_API_KEY, or config file in Fabric config dir.");
 		}
 
+		if (ChatInteraction.isImagenEnabled()) {
+			LOGGER.info("ClankerCraft: Imagen enabled (project configured). Use @MakePainting <prompt> during a conversation.");
+		} else {
+			LOGGER.warn("ClankerCraft: Imagen disabled. Set GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID, and GCP_LOCATION in config.");
+		}
+
 		LOGGER.info("ClankerCraft initialized: entities, items, and chat interactions registered.");
 	}
 }
