@@ -238,6 +238,13 @@ public final class ChatInteraction {
                                         player.sendMessage(Text.literal("DiazJaquet: transcoded to OGG at " + oggPath));
                                         player.sendMessage(Text.literal("DiazJaquet: overridden disc '" + discId + "'. Press F3+T to reload."));
                                         player.sendMessage(Text.literal("If you don't hear it, enable the generated pack at " + packRoot));
+
+                                        // Drop the corresponding music disc at the mob's location (simple: disc 13)
+                                        DiazJaquetEntity diaz = findMobByUuid(world, session.mobUuid);
+                                        if (diaz != null && diaz.isAlive()) {
+                                            diaz.dropStack(world, new net.minecraft.item.ItemStack(net.minecraft.item.Items.MUSIC_DISC_13));
+                                            player.sendMessage(Text.literal("DiazJaquet: here's your music disc!"));
+                                        }
                                     }
                                 });
                             });
