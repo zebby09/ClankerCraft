@@ -26,6 +26,7 @@ public final class ChatInteraction {
     private static final String TRIGGER = "@diazjaquet"; // case-insensitive match
     private static final String BYE_TRIGGER = "@byebye"; // end conversation
     private static final String PAINT_TRIGGER = "@makepainting"; // case-insensitive
+    private static final String MUSIC_TRIGGER = "@makemusic"; // new: music generation via Lyria2
     private static final double SEARCH_RANGE = 256.0; // increased search range in blocks
     private static final double MOVE_SPEED = 1.2; // navigation speed
     private static final double ARRIVE_DISTANCE = 2.5; // when considered arrived to freeze
@@ -35,6 +36,7 @@ public final class ChatInteraction {
     private static final Map<UUID, Session> SESSIONS = new ConcurrentHashMap<>();
     private static final LLMClient LLM = new LLMClient();
     private static final ImagenClient IMAGEN = new ImagenClient();
+    private static final clanker.craft.music.Lyria2Client LYRIA = new clanker.craft.music.Lyria2Client();
     private static final ExecutorService EXEC = new ThreadPoolExecutor(
             1, 2, 30, TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(64),
@@ -182,6 +184,64 @@ public final class ChatInteraction {
                                 });
                             });
                     return; // do not pass this message to the LLM
+                }
+
+                // Handle @makemusic command within active conversation (first step: generate WAV into run/MusicSamples)
+                if (lower.startsWith(MUSIC_TRIGGER)) {
+                    String prompt = trimmed.substring(MUSIC_TRIGGER.length()).trim();
+                    if (!LYRIA.isEnabled()) {
+                        String cfgPath = String.valueOf(FabricLoader.getInstance().getConfigDir().resolve("clankercraft-llm.properties").toAbsolutePath());
+                        player.sendMessage(Text.literal("Lyria not configured. Ensure GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID and GCP_LOCATION are set in " + cfgPath));
+                        return;
+                    }
+                    if (prompt.isEmpty()) {
+                        player.sendMessage(Text.literal("Usage: @MakeMusic <prompt>"));
+                        return;
+                    }
+                    if (session.busy) {
+                        player.sendMessage(Text.literal("DiazJaquet is busy. Please wait..."));
+                        return;
+                    }
+                    session.busy = true;
+                    player.sendMessage(Text.literal("DiazJaquet: composing music for '" + prompt + "'..."));
+
+                    CompletableFuture
+                            .supplyAsync(() -> {
+                                try {
+                                    java.nio.file.Path wav = LYRIA.generateAndSave(prompt);
+                                    // Transcode to OGG Vorbis for Minecraft
+                                    String name = wav.getFileName().toString();
+                                    String base = name.endsWith(".wav") ? name.substring(0, name.length() - 4) : name;
+                                    java.nio.file.Path ogg = wav.getParent().resolve(base + ".ogg");
+                                    clanker.craft.music.FfmpegTranscoder.toOggVorbis(wav, ogg);
+                                    String discId = "13"; // choose a vanilla disc to override
+                                    clanker.craft.music.DiscOverridePackWriter.writeToBuildResources(discId, ogg);
+                                    java.nio.file.Path packRoot = clanker.craft.music.DiscOverridePackWriter.writeToGeneratedPack(discId, ogg);
+                                    return "OK|" + wav.toAbsolutePath() + "|" + ogg.toAbsolutePath() + "|" + discId + "|" + packRoot.toAbsolutePath();
+                                } catch (Exception e) {
+                                    return "ERR|" + e.getMessage();
+                                }
+                            }, EXEC)
+                            .thenAcceptAsync(result -> {
+                                server.execute(() -> {
+                                    session.busy = false;
+                                    if (result.startsWith("ERR|")) {
+                                        player.sendMessage(Text.literal("DiazJaquet: failed to prepare disc audio: " + result.substring(4)));
+                                        player.sendMessage(Text.literal("Tip: ensure ffmpeg is installed and on PATH."));
+                                    } else {
+                                        String[] parts = result.split("\\|", 5);
+                                        String wavPath = parts.length > 1 ? parts[1] : "";
+                                        String oggPath = parts.length > 2 ? parts[2] : "";
+                                        String discId = parts.length > 3 ? parts[3] : "13";
+                                        String packRoot = parts.length > 4 ? parts[4] : "";
+                                        player.sendMessage(Text.literal("DiazJaquet: saved music (WAV) to " + wavPath));
+                                        player.sendMessage(Text.literal("DiazJaquet: transcoded to OGG at " + oggPath));
+                                        player.sendMessage(Text.literal("DiazJaquet: overridden disc '" + discId + "'. Press F3+T to reload."));
+                                        player.sendMessage(Text.literal("If you don't hear it, enable the generated pack at " + packRoot));
+                                    }
+                                });
+                            });
+                    return; // do not pass message to LLM
                 }
 
                 // Append user turn and call LLM off-thread
