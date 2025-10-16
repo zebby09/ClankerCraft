@@ -148,7 +148,11 @@ public final class ChatInteraction {
                         return;
                     }
                     session.busy = true;
-                    player.sendMessage(Text.literal("DiazJaquet: generating a painting for '" + prompt + "'..."));
+                    String startMsg = "Okay great! I'm creating a painting for '" + prompt + "'...";
+                    player.sendMessage(Text.literal(startMsg));
+                    // Speak start message via TTS
+                    int startEntityId = (mob == null) ? -1 : mob.getId();
+                    ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(startMsg, startEntityId));
 
                     CompletableFuture
                             .supplyAsync(() -> {
@@ -175,7 +179,10 @@ public final class ChatInteraction {
                                             if (diaz != null && diaz.isAlive()) {
                                                 // Just drop a regular painting - the Match variant texture is already updated
                                                 diaz.dropStack(world, new net.minecraft.item.ItemStack(net.minecraft.item.Items.PAINTING));
-                                                player.sendMessage(Text.literal("DiazJaquet: here's your painting! Place it and cycle to the Match variant."));
+                                                String doneMsg = "I have finished painting. Here it is!";
+                                                player.sendMessage(Text.literal(doneMsg));
+                                                // Speak success message via TTS
+                                                ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(doneMsg, diaz.getId()));
                                             }
                                         } catch (Exception e) {
                                             player.sendMessage(Text.literal("DiazJaquet: saved but failed to update texture: " + e.getMessage()));
@@ -203,7 +210,11 @@ public final class ChatInteraction {
                         return;
                     }
                     session.busy = true;
-                    player.sendMessage(Text.literal("DiazJaquet: composing music for '" + prompt + "'..."));
+                    String startMsg = "Okay great! I'm composing some " + prompt + " Music!";
+                    player.sendMessage(Text.literal(startMsg));
+                    // Speak start message via TTS
+                    int startEntityId = (mob == null) ? -1 : mob.getId();
+                    ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(startMsg, startEntityId));
 
                     CompletableFuture
                             .supplyAsync(() -> {
@@ -243,7 +254,10 @@ public final class ChatInteraction {
                                         DiazJaquetEntity diaz = findMobByUuid(world, session.mobUuid);
                                         if (diaz != null && diaz.isAlive()) {
                                             diaz.dropStack(world, new net.minecraft.item.ItemStack(net.minecraft.item.Items.MUSIC_DISC_13));
-                                            player.sendMessage(Text.literal("DiazJaquet: here's your music disc!"));
+                                            String doneMsg = "I'm done composing! here's your music disc!";
+                                            player.sendMessage(Text.literal(doneMsg));
+                                            // Speak success message via TTS
+                                            ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(doneMsg, diaz.getId()));
                                         }
                                     }
                                 });
@@ -317,7 +331,13 @@ public final class ChatInteraction {
                     if (distSq <= (ARRIVE_DISTANCE * ARRIVE_DISTANCE)) {
                         mob.setAiDisabled(true); // freeze in place
                         s.awaitingFreeze = false; // now frozen until @byebye
-                        // Optionally, face the player
+                        // Optionally, face the player (initial turn)
+                        mob.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, player.getEyePos());
+                    }
+                } else {
+                    // After frozen, keep the mob looking at the player each tick so it feels alive
+                    if (mob.isAiDisabled()) {
+                        // Continuously face the player's eyes while conversing
                         mob.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, player.getEyePos());
                     }
                 }
