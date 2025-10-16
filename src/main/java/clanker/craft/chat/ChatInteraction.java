@@ -19,6 +19,7 @@ import net.minecraft.util.math.Vec3d;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.nio.file.Files;
 
 public final class ChatInteraction {
     private ChatInteraction() {}
@@ -151,7 +152,7 @@ public final class ChatInteraction {
                     String startMsg = "Okay great! I'm creating a painting for '" + prompt + "'...";
                     player.sendMessage(Text.literal(startMsg));
                     // Speak start message via TTS
-                    int startEntityId = (mob == null) ? -1 : mob.getId();
+                    int startEntityId = mob.getId();
                     ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(startMsg, startEntityId));
 
                     CompletableFuture
@@ -213,7 +214,7 @@ public final class ChatInteraction {
                     String startMsg = "Okay great! I'm composing some " + prompt + " Music!";
                     player.sendMessage(Text.literal(startMsg));
                     // Speak start message via TTS
-                    int startEntityId = (mob == null) ? -1 : mob.getId();
+                    int startEntityId = mob.getId();
                     ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(startMsg, startEntityId));
 
                     CompletableFuture
@@ -228,7 +229,9 @@ public final class ChatInteraction {
                                     String discId = "13"; // choose a vanilla disc to override
                                     clanker.craft.music.DiscOverridePackWriter.writeToBuildResources(discId, ogg);
                                     java.nio.file.Path packRoot = clanker.craft.music.DiscOverridePackWriter.writeToGeneratedPack(discId, ogg);
-                                    return "OK|" + wav.toAbsolutePath() + "|" + ogg.toAbsolutePath() + "|" + discId + "|" + packRoot.toAbsolutePath();
+                                    // Delete the intermediate WAV to avoid saving both WAV and OGG in MusicSamples
+                                    try { Files.deleteIfExists(wav); } catch (Exception ignored) {}
+                                    return "OK|" + ogg.toAbsolutePath() + "|" + discId + "|" + packRoot.toAbsolutePath();
                                 } catch (Exception e) {
                                     return "ERR|" + e.getMessage();
                                 }
@@ -240,13 +243,12 @@ public final class ChatInteraction {
                                         player.sendMessage(Text.literal("DiazJaquet: failed to prepare disc audio: " + result.substring(4)));
                                         player.sendMessage(Text.literal("Tip: ensure ffmpeg is installed and on PATH."));
                                     } else {
-                                        String[] parts = result.split("\\|", 5);
-                                        String wavPath = parts.length > 1 ? parts[1] : "";
-                                        String oggPath = parts.length > 2 ? parts[2] : "";
-                                        String discId = parts.length > 3 ? parts[3] : "13";
-                                        String packRoot = parts.length > 4 ? parts[4] : "";
-                                        player.sendMessage(Text.literal("DiazJaquet: saved music (WAV) to " + wavPath));
-                                        player.sendMessage(Text.literal("DiazJaquet: transcoded to OGG at " + oggPath));
+                                        String[] parts = result.split("\\|", 4);
+                                        String oggPath = parts.length > 1 ? parts[1] : "";
+                                        String discId = parts.length > 2 ? parts[2] : "13";
+                                        String packRoot = parts.length > 3 ? parts[3] : "";
+                                        // Inform only about the OGG since WAV was not kept
+                                        player.sendMessage(Text.literal("DiazJaquet: composed and transcoded to OGG at " + oggPath));
                                         player.sendMessage(Text.literal("DiazJaquet: overridden disc '" + discId + "'. Press F3+T to reload."));
                                         player.sendMessage(Text.literal("If you don't hear it, enable the generated pack at " + packRoot));
 
