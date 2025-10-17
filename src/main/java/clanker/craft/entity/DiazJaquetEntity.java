@@ -3,6 +3,7 @@ package clanker.craft.entity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.mob.IllusionerEntity;
+import net.minecraft.entity.passive.CopperGolemEntity;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.world.World;
 
@@ -10,8 +11,8 @@ import net.minecraft.world.World;
  * DiazJaquet: a custom entity that mirrors the vanilla Illusioner but with neutral behavior.
  * We override goal initialization and attack to avoid any hostile actions (no raids, no attacking villagers).
  */
-public class DiazJaquetEntity extends IllusionerEntity {
-    public DiazJaquetEntity(EntityType<? extends IllusionerEntity> entityType, World world) {
+public class DiazJaquetEntity extends CopperGolemEntity {
+    public DiazJaquetEntity(EntityType<? extends CopperGolemEntity> entityType, World world) {
         super(entityType, world);
     }
 
