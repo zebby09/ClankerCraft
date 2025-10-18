@@ -1,6 +1,6 @@
 package clanker.craft.chat;
 
-import clanker.craft.entity.DiazJaquetEntity;
+import clanker.craft.entity.ClankerEntity;
 import clanker.craft.llm.LLMClient;
 import clanker.craft.network.TTSSpeakS2CPayload;
 import clanker.craft.personality.PersonalityManager;
@@ -11,7 +11,6 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.Items;
-import net.minecraft.registry.Registry;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -24,12 +23,8 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.Identifier;
-import net.minecraft.world.World;
-import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.ComponentType;
 
 
@@ -42,8 +37,8 @@ import java.nio.file.Files;
 public final class ChatInteraction {
     private ChatInteraction() {}
 
-    private static final String TRIGGER = "@diazjaquet"; // case-insensitive match
-    private static final String BYE_TRIGGER = "@byebye"; // end conversation
+    private static final String TRIGGER = "@clanker"; // case-insensitive match
+    private static final String BYE_TRIGGER = "@bye"; // end conversation
     private static final String PAINT_TRIGGER = "@makepainting"; // case-insensitive
     private static final String MUSIC_TRIGGER = "@makemusic"; // new: music generation via Lyria2
     private static final double SEARCH_RANGE = 256.0; // increased search range in blocks
@@ -60,7 +55,7 @@ public final class ChatInteraction {
             1, 2, 30, TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(64),
             r -> {
-                Thread t = new Thread(r, "DiazJaquet-LLM");
+                Thread t = new Thread(r, "Clanker-LLM");
                 t.setDaemon(true);
                 return t;
             },
@@ -98,20 +93,20 @@ public final class ChatInteraction {
                 if (lower.startsWith(TRIGGER)) {
                     Vec3d p = new Vec3d(player.getX(), player.getY(), player.getZ());
                     Box box = Box.from(p).expand(SEARCH_RANGE);
-                    DiazJaquetEntity nearest = world.getEntitiesByClass(DiazJaquetEntity.class, box, e -> e.isAlive())
+                    ClankerEntity nearest = world.getEntitiesByClass(ClankerEntity.class, box, e -> e.isAlive())
                             .stream()
                             .min(Comparator.comparingDouble(e -> e.squaredDistanceTo(p)))
                             .orElse(null);
 
                     if (nearest == null) {
-                        player.sendMessage(Text.literal("No DiazJaquet nearby (" + (int) SEARCH_RANGE + "m)."));
+                        player.sendMessage(Text.literal("No Clanker nearby (" + (int) SEARCH_RANGE + "m)."));
                         return;
                     }
 
                     // Unfreeze any previously selected mob for this player
                     Session existing = SESSIONS.get(player.getUuid());
                     if (existing != null) {
-                        DiazJaquetEntity prev = findMobByUuid(world, existing.mobUuid);
+                        ClankerEntity prev = findMobByUuid(world, existing.mobUuid);
                         if (prev != null) prev.setAiDisabled(false);
                     }
 
@@ -128,11 +123,16 @@ public final class ChatInteraction {
                     Session s = SESSIONS.remove(player.getUuid());
                     if (s != null) {
                         // Try to unfreeze the mob if still around
-                        DiazJaquetEntity mob = findMobByUuid((ServerWorld) player.getEntityWorld(), s.mobUuid);
+                        ClankerEntity mob = findMobByUuid((ServerWorld) player.getEntityWorld(), s.mobUuid);
                         if (mob != null) {
                             mob.setAiDisabled(false);
                         }
-                        player.sendMessage(Text.literal("DiazJaquet: bye! (conversation ended)"));
+                        String byeMsg = "Bye bye!";
+                        player.sendMessage(Text.literal(byeMsg));
+                        // Speak start message via TTS
+                        int startEntityId = mob.getId();
+                        ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(byeMsg, startEntityId));
+
                     }
                     return;
                 }
@@ -142,10 +142,10 @@ public final class ChatInteraction {
                 if (session == null) return; // not conversing, ignore
 
                 // Validate mob still exists/alive
-                DiazJaquetEntity mob = findMobByUuid(world, session.mobUuid);
+                ClankerEntity mob = findMobByUuid(world, session.mobUuid);
                 if (mob == null || !mob.isAlive()) {
                     SESSIONS.remove(player.getUuid());
-                    player.sendMessage(Text.literal("DiazJaquet is no longer here. Conversation ended."));
+                    player.sendMessage(Text.literal("Clanker is no longer here. Conversation ended."));
                     return;
                 }
 
@@ -163,7 +163,7 @@ public final class ChatInteraction {
                         return;
                     }
                     if (session.busy) {
-                        player.sendMessage(Text.literal("DiazJaquet is busy. Please wait..."));
+                        player.sendMessage(Text.literal("Clanker is busy. Please wait..."));
                         return;
                     }
                     session.busy = true;
@@ -185,17 +185,17 @@ public final class ChatInteraction {
                                 server.execute(() -> {
                                     session.busy = false;
                                     if (result.startsWith("(error) ")) {
-                                        player.sendMessage(Text.literal("DiazJaquet: failed to make painting: " + result.substring(8)));
+                                        player.sendMessage(Text.literal("Clanker: failed to make painting: " + result.substring(8)));
                                     } else {
-                                        player.sendMessage(Text.literal("DiazJaquet: saved painting to " + result));
+                                        player.sendMessage(Text.literal("Clanker: saved painting to " + result));
                                         // Update the painting texture
                                         try {
                                             ImagenClient.updatePaintingTexture(java.nio.file.Path.of(result));
-                                            player.sendMessage(Text.literal("DiazJaquet: painting texture updated! Press F3+T to reload and see it."));
+                                            player.sendMessage(Text.literal("Clanker: painting texture updated! Press F3+T to reload and see it."));
 
                                             // Drop a painting item at the mob's location
-                                            DiazJaquetEntity diaz = findMobByUuid(world, session.mobUuid);
-                                            if (diaz != null && diaz.isAlive()) {
+                                            ClankerEntity clanker = findMobByUuid(world, session.mobUuid);
+                                            if (clanker != null && clanker.isAlive()) {
 
                                                 // 1. create new itemstack
                                                 ItemStack paintingStack = new ItemStack(Items.PAINTING);
@@ -205,7 +205,7 @@ public final class ChatInteraction {
 
                                                 var paintingRegistry = registryManager.getOrThrow(RegistryKeys.PAINTING_VARIANT);
 
-                                                var matchID = Identifier.of("match");
+                                                var matchID = Identifier.of("pointer");
 
                                                 var matchOptionalEntry = paintingRegistry.getEntry(matchID);
 
@@ -215,13 +215,13 @@ public final class ChatInteraction {
 
                                                 // 3. finish
                                                 String doneMsg = "I have finished painting. Here it is!";
-                                                diaz.dropStack(world, paintingStack);
+                                                clanker.dropStack(world, paintingStack);
                                                 player.sendMessage(Text.literal(doneMsg));
                                                 // Speak success message via TTS
-                                                ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(doneMsg, diaz.getId()));
+                                                ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(doneMsg, clanker.getId()));
                                             }
                                         } catch (Exception e) {
-                                            player.sendMessage(Text.literal("DiazJaquet: saved but failed to update texture: " + e.getMessage()));
+                                            player.sendMessage(Text.literal("Clanker: saved but failed to update texture: " + e.getMessage()));
                                         }
                                     }
                                 });
@@ -242,10 +242,11 @@ public final class ChatInteraction {
                         return;
                     }
                     if (session.busy) {
-                        player.sendMessage(Text.literal("DiazJaquet is busy. Please wait..."));
+                        player.sendMessage(Text.literal("Clanker is busy. Please wait..."));
                         return;
                     }
                     session.busy = true;
+
                     String startMsg = "Okay great! I'm composing some " + prompt + " Music!";
                     player.sendMessage(Text.literal(startMsg));
                     // Speak start message via TTS
@@ -275,7 +276,7 @@ public final class ChatInteraction {
                                 server.execute(() -> {
                                     session.busy = false;
                                     if (result.startsWith("ERR|")) {
-                                        player.sendMessage(Text.literal("DiazJaquet: failed to prepare disc audio: " + result.substring(4)));
+                                        player.sendMessage(Text.literal("Clanker: failed to prepare disc audio: " + result.substring(4)));
                                         player.sendMessage(Text.literal("Tip: ensure ffmpeg is installed and on PATH."));
                                     } else {
                                         String[] parts = result.split("\\|", 4);
@@ -283,18 +284,18 @@ public final class ChatInteraction {
                                         String discId = parts.length > 2 ? parts[2] : "13";
                                         String packRoot = parts.length > 3 ? parts[3] : "";
                                         // Inform only about the OGG since WAV was not kept
-                                        player.sendMessage(Text.literal("DiazJaquet: composed and transcoded to OGG at " + oggPath));
-                                        player.sendMessage(Text.literal("DiazJaquet: overridden disc '" + discId + "'. Press F3+T to reload."));
+                                        player.sendMessage(Text.literal("Clanker: composed and transcoded to OGG at " + oggPath));
+                                        player.sendMessage(Text.literal("Clanker: overridden disc '" + discId + "'. Press F3+T to reload."));
                                         player.sendMessage(Text.literal("If you don't hear it, enable the generated pack at " + packRoot));
 
                                         // Drop the corresponding music disc at the mob's location (simple: disc 13)
-                                        DiazJaquetEntity diaz = findMobByUuid(world, session.mobUuid);
-                                        if (diaz != null && diaz.isAlive()) {
-                                            diaz.dropStack(world, new net.minecraft.item.ItemStack(net.minecraft.item.Items.MUSIC_DISC_13));
+                                        ClankerEntity clanker = findMobByUuid(world, session.mobUuid);
+                                        if (clanker != null && clanker.isAlive()) {
+                                            clanker.dropStack(world, new net.minecraft.item.ItemStack(net.minecraft.item.Items.MUSIC_DISC_13));
                                             String doneMsg = "I'm done composing! here's your music disc!";
                                             player.sendMessage(Text.literal(doneMsg));
                                             // Speak success message via TTS
-                                            ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(doneMsg, diaz.getId()));
+                                            ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(doneMsg, clanker.getId()));
                                         }
                                     }
                                 });
@@ -306,12 +307,12 @@ public final class ChatInteraction {
                 session.appendUser(trimmed);
                 if (!LLM.isEnabled()) {
                     String cfgPath = String.valueOf(FabricLoader.getInstance().getConfigDir().resolve("clankercraft-llm.properties").toAbsolutePath());
-                    player.sendMessage(Text.literal("DiazJaquet (LLM disabled): Provide GOOGLE_AI_API_KEY via env var, JVM -DGOOGLE_AI_API_KEY, or create " + cfgPath + ". Then restart."));
+                    player.sendMessage(Text.literal("Clanker (LLM disabled): Provide GOOGLE_AI_API_KEY via env var, JVM -DGOOGLE_AI_API_KEY, or create " + cfgPath + ". Then restart."));
                     return;
                 }
 
                 if (session.busy) {
-                    player.sendMessage(Text.literal("DiazJaquet is thinking... please wait."));
+                    player.sendMessage(Text.literal("Clanker is thinking... please wait."));
                     return;
                 }
                 session.busy = true;
@@ -329,10 +330,10 @@ public final class ChatInteraction {
                             server.execute(() -> {
                                 session.appendModel(reply);
                                 session.busy = false;
-                                player.sendMessage(Text.literal("DiazJaquet: " + reply));
+                                player.sendMessage(Text.literal("Clanker: " + reply));
 
                                 // Also trigger client-side TTS playback using a custom payload with entity position context
-                                DiazJaquetEntity m = findMobByUuid(world, session.mobUuid);
+                                ClankerEntity m = findMobByUuid(world, session.mobUuid);
                                 int entityId = (m == null) ? -1 : m.getId();
                                 ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(reply, entityId));
                             });
@@ -355,7 +356,7 @@ public final class ChatInteraction {
                 if (player == null) continue; // offline
 
                 ServerWorld world = (ServerWorld) player.getEntityWorld();
-                DiazJaquetEntity mob = findMobByUuid(world, s.mobUuid);
+                ClankerEntity mob = findMobByUuid(world, s.mobUuid);
                 if (mob == null || !mob.isAlive()) continue;
 
                 double distSq = mob.squaredDistanceTo(player);
@@ -367,7 +368,7 @@ public final class ChatInteraction {
                       }
                     if (distSq <= (ARRIVE_DISTANCE * ARRIVE_DISTANCE)) {
                         mob.setAiDisabled(true); // freeze in place
-                        s.awaitingFreeze = false; // now frozen until @byebye
+                        s.awaitingFreeze = false; // now frozen until @bye
                         // Optionally, face the player (initial turn)
                         mob.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, player.getEyePos());
                     }
@@ -382,7 +383,7 @@ public final class ChatInteraction {
         });
     }
 
-    private static void setSession(ServerPlayerEntity player, DiazJaquetEntity mob) {
+    private static void setSession(ServerPlayerEntity player, ClankerEntity mob) {
         Session s = new Session(mob.getUuid());
         // Inject active personality as a system instruction to steer the LLM
         String persona = PersonalityManager.getActivePersonalityText();
@@ -400,10 +401,10 @@ public final class ChatInteraction {
         ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(greeting, mob.getId()));
     }
 
-    private static DiazJaquetEntity findMobByUuid(ServerWorld world, UUID uuid) {
+    private static ClankerEntity findMobByUuid(ServerWorld world, UUID uuid) {
         if (uuid == null) return null;
         Entity e = world.getEntity(uuid);
-        if (e instanceof DiazJaquetEntity dj) return dj;
+        if (e instanceof ClankerEntity dj) return dj;
         return null;
     }
 

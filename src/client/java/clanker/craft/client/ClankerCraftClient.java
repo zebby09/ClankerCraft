@@ -7,7 +7,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.minecraft.client.render.entity.IllusionerEntityRenderer;
 import net.minecraft.client.render.entity.CopperGolemEntityRenderer;
 
 
@@ -31,7 +30,7 @@ public class ClankerCraftClient implements ClientModInitializer {
         // Tick to cleanup OpenAL sources
         ClientTickEvents.END_CLIENT_TICK.register(client -> ClientTTS.get().tick(client));
 
-        // Register renderer for DiazJaquet entity (reuse vanilla Illusioner renderer)
-        EntityRendererRegistry.register(ModEntities.DIAZ_JAQUET, CopperGolemEntityRenderer::new);
+        // Register renderer for Clanker entity (reuse vanilla Illusioner renderer)
+        EntityRendererRegistry.register(ModEntities.CLANKER, CopperGolemEntityRenderer::new);
     }
 }

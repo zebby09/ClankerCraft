@@ -311,7 +311,7 @@ public final class ImagenClient {
     private static String truncate(String s, int max) { return (s.length() <= max) ? s : s.substring(0, max) + "..."; }
 
     /**
-     * Updates the match.png painting texture with the given image file, resized to 32x32.
+     * Updates the pointer.png painting texture with the given image file, resized to 32x32.
      */
     public static void updatePaintingTexture(Path sourceImagePath) {
         try {
@@ -338,7 +338,7 @@ public final class ImagenClient {
                     .resolve("painting");
 
             Files.createDirectories(srcResourcesDir);
-            Path srcTargetPath = srcResourcesDir.resolve("match.png");
+            Path srcTargetPath = srcResourcesDir.resolve("pointer.png");
             ImageIO.write(resized, "PNG", srcTargetPath.toFile());
             LOGGER.info("Updated source painting texture: {}", srcTargetPath.toAbsolutePath());
 
@@ -354,7 +354,7 @@ public final class ImagenClient {
 
             if (Files.exists(buildResourcesDir.getParent().getParent().getParent())) {
                 Files.createDirectories(buildResourcesDir);
-                Path buildTargetPath = buildResourcesDir.resolve("match.png");
+                Path buildTargetPath = buildResourcesDir.resolve("pointer.png");
                 ImageIO.write(resized, "PNG", buildTargetPath.toFile());
                 LOGGER.info("Updated build painting texture: {}", buildTargetPath.toAbsolutePath());
                 LOGGER.info("Press F3+T in-game to reload and see the new painting!");

@@ -35,13 +35,13 @@ public final class PersonalityManager {
     }
 
     private static String loadPersonalityName() {
-        // Read from config file: clankercraft-llm.properties, key: DIAZJAQUET_PERSONALITY
+        // Read from config file: clankercraft-llm.properties, key: CLANKER_PERSONALITY
         Path cfgFile = FabricLoader.getInstance().getConfigDir().resolve("clankercraft-llm.properties");
         if (Files.exists(cfgFile)) {
             Properties props = new Properties();
             try (InputStream in = Files.newInputStream(cfgFile)) {
                 props.load(in);
-                String v = props.getProperty("DIAZJAQUET_PERSONALITY");
+                String v = props.getProperty("CLANKER_PERSONALITY");
                 if (v != null) return v.trim();
             } catch (IOException ignored) { }
         }
@@ -72,11 +72,11 @@ public final class PersonalityManager {
 
     private static String builtInFallback(String name) {
         if ("Excited".equalsIgnoreCase(name)) {
-            return "System instruction: You are DiazJaquet, an excitable, upbeat companion. " +
+            return "System instruction: You are Clanker, an excitable, upbeat companion. " +
                     "Respond with enthusiasm, positivity, and helpful energy. Keep responses concise but lively.";
         }
         // Default to Grumpy
-        return "System instruction: You are DiazJaquet, a grumpy, sardonic companion. " +
+        return "System instruction: You are Clanker, a grumpy, sardonic companion. " +
                 "Respond curtly with dry humor and mild annoyance, but still helpful. Keep responses brief.";
     }
 }

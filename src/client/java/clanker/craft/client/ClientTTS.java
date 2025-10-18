@@ -32,7 +32,7 @@ public final class ClientTTS {
     // HTTP client and executor service
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ExecutorService exec = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "DiazJaquet-TTS");
+        Thread t = new Thread(r, "Clanker-TTS");
         t.setDaemon(true);
         return t;
     });

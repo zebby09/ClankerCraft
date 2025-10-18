@@ -7,17 +7,17 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.SpawnEggItem;
 
 /**
- * A spawn egg that uses vanilla SpawnEggItem rendering/behavior but spawns our DiazJaquet entity.
+ * A spawn egg that uses vanilla SpawnEggItem rendering/behavior but spawns our Clanker entity.
  * This avoids custom spawning logic and keeps visuals identical to other spawn eggs.
  */
-public class DiazJaquet_SpawnEgg extends SpawnEggItem {
-    public DiazJaquet_SpawnEgg(Item.Settings settings) {
+public class Clanker_SpawnEgg extends SpawnEggItem {
+    public Clanker_SpawnEgg(Item.Settings settings) {
         super(settings);
     }
 
     @Override
     public EntityType<?> getEntityType(ItemStack stack) {
-        return ModEntities.DIAZ_JAQUET;
+        return ModEntities.CLANKER;
     }
 }
 
