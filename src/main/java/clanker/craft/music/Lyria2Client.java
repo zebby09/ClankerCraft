@@ -21,8 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
- * Minimal REST client for Vertex AI Lyria 2 music generation (via Model Garden) that saves a WAV file.
- * It mirrors the ImagenClient style to reuse existing Google auth setup.
+ * A client for Vertex AI Lyria 2 music generation that saves a music file.
  */
 public final class Lyria2Client {
     private static final Logger LOGGER = LoggerFactory.getLogger("ClankerCraft-Lyria2");
@@ -37,7 +36,7 @@ public final class Lyria2Client {
     private final String model;
 
     public Lyria2Client() {
-        this.projectId = readFromConfig("GCP_PROJECT_ID");
+        this.projectId = readFromConfig("GOOGLE_CLOUD_PROJECT_ID");
         String loc = readFromConfig("GCP_LOCATION");
         this.location = (loc == null || loc.isBlank()) ? "us-central1" : loc.trim();
         String m = readFromConfig("VERTEX_LYRIA_MODEL");

@@ -141,7 +141,7 @@ public final class ClientTTS {
 
     // Prefer dedicated TTS key; no fallback to AI Studio key
     private static String resolveTtsKey() {
-        return resolve("GOOGLE_TTS_API_KEY");
+        return resolve("GOOGLE_CLOUD_API_KEY");
     }
 
     private PcmAudio synthesizePcm(String text) throws Exception {

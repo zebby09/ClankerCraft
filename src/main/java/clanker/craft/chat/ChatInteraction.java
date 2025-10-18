@@ -1,10 +1,18 @@
 package clanker.craft.chat;
 
-import clanker.craft.entity.ClankerEntity;
+// CLIENTS
 import clanker.craft.llm.LLMClient;
-import clanker.craft.network.TTSSpeakS2CPayload;
-import clanker.craft.personality.PersonalityManager;
 import clanker.craft.imagen.ImagenClient;
+import clanker.craft.music.Lyria2Client;
+
+// CLANKER ENTITY
+import clanker.craft.entity.ClankerEntity;
+import clanker.craft.personality.PersonalityManager;
+
+// NETWORKING
+import clanker.craft.network.TTSSpeakS2CPayload;
+
+// MINECRAFT
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -18,21 +26,16 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
-
-
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.Identifier;
 import net.minecraft.component.ComponentType;
-
-
-
-
 import java.util.*;
 import java.util.concurrent.*;
 import java.nio.file.Files;
+
 
 public final class ChatInteraction {
     private ChatInteraction() {}
@@ -42,7 +45,7 @@ public final class ChatInteraction {
     private static final String PAINT_TRIGGER = "@makepainting"; // case-insensitive
     private static final String MUSIC_TRIGGER = "@makemusic"; // new: music generation via Lyria2
     private static final double SEARCH_RANGE = 256.0; // increased search range in blocks
-    private static final double MOVE_SPEED = 1.2; // navigation speed
+    private static final double MOVE_SPEED = 1; // navigation speed
     private static final double ARRIVE_DISTANCE = 2.5; // when considered arrived to freeze
     private static final int PATH_REFRESH_TICKS = 20; // reissue path each second while approaching
 
@@ -50,14 +53,12 @@ public final class ChatInteraction {
     private static final Map<UUID, Session> SESSIONS = new ConcurrentHashMap<>();
     private static final LLMClient LLM = new LLMClient();
     private static final ImagenClient IMAGEN = new ImagenClient();
-    private static final clanker.craft.music.Lyria2Client LYRIA = new clanker.craft.music.Lyria2Client();
+    private static final clanker.craft.music.Lyria2Client LYRIA = new Lyria2Client();
     private static final ExecutorService EXEC = new ThreadPoolExecutor(
             1, 2, 30, TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(64),
             r -> {
-                Thread t = new Thread(r, "Clanker-LLM");
-                t.setDaemon(true);
-                return t;
+                Thread t = new Thread(r, "Clanker-LLM"); t.setDaemon(true); return t;
             },
             new ThreadPoolExecutor.CallerRunsPolicy()
     );
@@ -69,8 +70,9 @@ public final class ChatInteraction {
     public static boolean isImagenEnabled() { return IMAGEN.isEnabled(); }
     public static String llmModel() { return LLM.getModel(); }
 
+
+    // MAIN FUNCTIONALITY: Register chat listener --> Listen to server chat messages
     public static void register() {
-        // Listen to server chat messages
         ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) -> {
             try {
                 String raw = null;
@@ -89,7 +91,7 @@ public final class ChatInteraction {
                 ServerWorld world = (ServerWorld) player.getEntityWorld();
                 MinecraftServer server = world.getServer();
 
-                // Start/refresh conversation and summon nearest
+                // 1) START conversation
                 if (lower.startsWith(TRIGGER)) {
                     Vec3d p = new Vec3d(player.getX(), player.getY(), player.getZ());
                     Box box = Box.from(p).expand(SEARCH_RANGE);
@@ -99,7 +101,7 @@ public final class ChatInteraction {
                             .orElse(null);
 
                     if (nearest == null) {
-                        player.sendMessage(Text.literal("No Clanker nearby (" + (int) SEARCH_RANGE + "m)."));
+                        player.sendMessage(Text.literal("No Clanker nearby..."));
                         return;
                     }
 
@@ -114,11 +116,10 @@ public final class ChatInteraction {
                     nearest.getNavigation().startMovingTo(player, MOVE_SPEED);
                     setSession(player, nearest);
 
-                    // Replaced the old distance message with the greeting handled in setSession()
                     return;
                 }
 
-                // End conversation
+                // 2) END conversation
                 if (lower.startsWith(BYE_TRIGGER)) {
                     Session s = SESSIONS.remove(player.getUuid());
                     if (s != null) {
@@ -127,12 +128,11 @@ public final class ChatInteraction {
                         if (mob != null) {
                             mob.setAiDisabled(false);
                         }
+                        // Speak bye message via TTS
                         String byeMsg = "Bye bye!";
                         player.sendMessage(Text.literal(byeMsg));
-                        // Speak start message via TTS
                         int startEntityId = mob.getId();
                         ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(byeMsg, startEntityId));
-
                     }
                     return;
                 }
@@ -149,17 +149,18 @@ public final class ChatInteraction {
                     return;
                 }
 
-                // Handle @makepainting command within active conversation
+
+                // A) PAINTING GENERATION
                 if (lower.startsWith(PAINT_TRIGGER)) {
                     // Extract prompt after the trigger
                     String prompt = trimmed.substring(PAINT_TRIGGER.length()).trim();
                     if (!IMAGEN.isEnabled()) {
                         String cfgPath = String.valueOf(FabricLoader.getInstance().getConfigDir().resolve("clankercraft-llm.properties").toAbsolutePath());
-                        player.sendMessage(Text.literal("Imagen not configured. Ensure GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID and GCP_LOCATION are set in " + cfgPath));
+                        player.sendMessage(Text.literal("!!! Imagen not configured. Make sure GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID and GCP_LOCATION are set in " + cfgPath));
                         return;
                     }
                     if (prompt.isEmpty()) {
-                        player.sendMessage(Text.literal("Usage: @MakePainting <prompt>"));
+                        player.sendMessage(Text.literal("Give me a prompt like so:  @MakePainting <prompt>"));
                         return;
                     }
                     if (session.busy) {
@@ -167,9 +168,9 @@ public final class ChatInteraction {
                         return;
                     }
                     session.busy = true;
+                    // Speak start message via TTS
                     String startMsg = "Okay great! I'm creating a painting for '" + prompt + "'...";
                     player.sendMessage(Text.literal(startMsg));
-                    // Speak start message via TTS
                     int startEntityId = mob.getId();
                     ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(startMsg, startEntityId));
 
@@ -185,60 +186,54 @@ public final class ChatInteraction {
                                 server.execute(() -> {
                                     session.busy = false;
                                     if (result.startsWith("(error) ")) {
-                                        player.sendMessage(Text.literal("Clanker: failed to make painting: " + result.substring(8)));
+                                        player.sendMessage(Text.literal("Clanker failed to make painting: " + result.substring(8)));
                                     } else {
-                                        player.sendMessage(Text.literal("Clanker: saved painting to " + result));
-                                        // Update the painting texture
                                         try {
                                             ImagenClient.updatePaintingTexture(java.nio.file.Path.of(result));
-                                            player.sendMessage(Text.literal("Clanker: painting texture updated! Press F3+T to reload and see it."));
+                                            player.sendMessage(Text.literal("Press F3+T to reload textures to see painting"));
 
                                             // Drop a painting item at the mob's location
                                             ClankerEntity clanker = findMobByUuid(world, session.mobUuid);
                                             if (clanker != null && clanker.isAlive()) {
 
-                                                // 1. create new itemstack
+                                                // 1. Create a new itemstack
                                                 ItemStack paintingStack = new ItemStack(Items.PAINTING);
 
-                                                // 2. Find the PaintingVariant that matches the prompt:
+                                                // 2. Find the correct painting variant
                                                 var registryManager = world.getRegistryManager();
-
                                                 var paintingRegistry = registryManager.getOrThrow(RegistryKeys.PAINTING_VARIANT);
-
                                                 var matchID = Identifier.of("pointer");
-
                                                 var matchOptionalEntry = paintingRegistry.getEntry(matchID);
-
                                                 RegistryEntry<PaintingVariant> matchEntry = matchOptionalEntry.orElseThrow(() -> new IllegalStateException("PaintingVariant not found: " + matchID));
-
                                                 paintingStack.set((ComponentType) DataComponentTypes.PAINTING_VARIANT, matchEntry);
 
-                                                // 3. finish
+                                                // 3. Finish and drop painting for the player
                                                 String doneMsg = "I have finished painting. Here it is!";
+                                                // Speak success message via TTS
                                                 clanker.dropStack(world, paintingStack);
                                                 player.sendMessage(Text.literal(doneMsg));
-                                                // Speak success message via TTS
                                                 ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(doneMsg, clanker.getId()));
                                             }
                                         } catch (Exception e) {
-                                            player.sendMessage(Text.literal("Clanker: saved but failed to update texture: " + e.getMessage()));
+                                            player.sendMessage(Text.literal("I managed to create the image, but failed to update texture: " + e.getMessage()));
                                         }
                                     }
                                 });
                             });
-                    return; // do not pass this message to the LLM
+                    return;
                 }
 
-                // Handle @makemusic command within active conversation (first step: generate WAV into run/MusicSamples)
+
+                // B) MUSIC DISC GENERATION
                 if (lower.startsWith(MUSIC_TRIGGER)) {
                     String prompt = trimmed.substring(MUSIC_TRIGGER.length()).trim();
                     if (!LYRIA.isEnabled()) {
                         String cfgPath = String.valueOf(FabricLoader.getInstance().getConfigDir().resolve("clankercraft-llm.properties").toAbsolutePath());
-                        player.sendMessage(Text.literal("Lyria not configured. Ensure GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID and GCP_LOCATION are set in " + cfgPath));
+                        player.sendMessage(Text.literal("!!! Lyria not configured. Ensure GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID and GCP_LOCATION are set in " + cfgPath));
                         return;
                     }
                     if (prompt.isEmpty()) {
-                        player.sendMessage(Text.literal("Usage: @MakeMusic <prompt>"));
+                        player.sendMessage(Text.literal("Give me a prompt like so:  @makemusic <prompt>"));
                         return;
                     }
                     if (session.busy) {
@@ -247,9 +242,9 @@ public final class ChatInteraction {
                     }
                     session.busy = true;
 
+                    // Speak start message via TTS
                     String startMsg = "Okay great! I'm composing some " + prompt + " Music!";
                     player.sendMessage(Text.literal(startMsg));
-                    // Speak start message via TTS
                     int startEntityId = mob.getId();
                     ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(startMsg, startEntityId));
 
@@ -276,38 +271,34 @@ public final class ChatInteraction {
                                 server.execute(() -> {
                                     session.busy = false;
                                     if (result.startsWith("ERR|")) {
-                                        player.sendMessage(Text.literal("Clanker: failed to prepare disc audio: " + result.substring(4)));
-                                        player.sendMessage(Text.literal("Tip: ensure ffmpeg is installed and on PATH."));
+                                        player.sendMessage(Text.literal("!!! Failed to prepare disc audio. Make sure ffmpeg is installed and on PATH" + result.substring(4)));
                                     } else {
                                         String[] parts = result.split("\\|", 4);
                                         String oggPath = parts.length > 1 ? parts[1] : "";
                                         String discId = parts.length > 2 ? parts[2] : "13";
                                         String packRoot = parts.length > 3 ? parts[3] : "";
-                                        // Inform only about the OGG since WAV was not kept
-                                        player.sendMessage(Text.literal("Clanker: composed and transcoded to OGG at " + oggPath));
-                                        player.sendMessage(Text.literal("Clanker: overridden disc '" + discId + "'. Press F3+T to reload."));
-                                        player.sendMessage(Text.literal("If you don't hear it, enable the generated pack at " + packRoot));
 
-                                        // Drop the corresponding music disc at the mob's location (simple: disc 13)
+                                        // Drop the corresponding music disc at the mob's location (disc 13)
                                         ClankerEntity clanker = findMobByUuid(world, session.mobUuid);
                                         if (clanker != null && clanker.isAlive()) {
                                             clanker.dropStack(world, new net.minecraft.item.ItemStack(net.minecraft.item.Items.MUSIC_DISC_13));
+                                            // Speak success message via TTS
                                             String doneMsg = "I'm done composing! here's your music disc!";
                                             player.sendMessage(Text.literal(doneMsg));
-                                            // Speak success message via TTS
                                             ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(doneMsg, clanker.getId()));
                                         }
                                     }
                                 });
                             });
-                    return; // do not pass message to LLM
+                    return;
                 }
 
-                // Append user turn and call LLM off-thread
+
+                // C) REGULAR CHAT MESSAGE --> LLM RESPONSE + TTS
                 session.appendUser(trimmed);
                 if (!LLM.isEnabled()) {
                     String cfgPath = String.valueOf(FabricLoader.getInstance().getConfigDir().resolve("clankercraft-llm.properties").toAbsolutePath());
-                    player.sendMessage(Text.literal("Clanker (LLM disabled): Provide GOOGLE_AI_API_KEY via env var, JVM -DGOOGLE_AI_API_KEY, or create " + cfgPath + ". Then restart."));
+                    player.sendMessage(Text.literal("!!! LLM not configured. Provide GOOGLE_AI_API_KEY via env var, JVM -DGOOGLE_AI_API_KEY, or create " + cfgPath + ". Then restart."));
                     return;
                 }
 
@@ -340,11 +331,12 @@ public final class ChatInteraction {
                         });
 
             } catch (Exception e) {
-                // Be robust and avoid breaking chat
+                // handle exceptional case
             }
         });
 
-        // Periodic server tick: keep mobs walking to players and freeze upon arrival
+
+        // WALKING FIX: use server tick to keep mobs walking to players and freeze upon arrival
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             tickCounter++;
             if (SESSIONS.isEmpty()) return;
@@ -369,13 +361,11 @@ public final class ChatInteraction {
                     if (distSq <= (ARRIVE_DISTANCE * ARRIVE_DISTANCE)) {
                         mob.setAiDisabled(true); // freeze in place
                         s.awaitingFreeze = false; // now frozen until @bye
-                        // Optionally, face the player (initial turn)
                         mob.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, player.getEyePos());
                     }
                 } else {
-                    // After frozen, keep the mob looking at the player each tick so it feels alive
+                    // After frozen, keep the mob looking at the player each tick
                     if (mob.isAiDisabled()) {
-                        // Continuously face the player's eyes while conversing
                         mob.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, player.getEyePos());
                     }
                 }
@@ -383,10 +373,12 @@ public final class ChatInteraction {
         });
     }
 
+
+    // Create and store a new session
     private static void setSession(ServerPlayerEntity player, ClankerEntity mob) {
         Session s = new Session(mob.getUuid());
         // Inject active personality as a system instruction to steer the LLM
-        String persona = PersonalityManager.getActivePersonalityText();
+        String persona = PersonalityManager.getActivePersonality();
         if (persona != null && !persona.isBlank()) {
             s.appendSystem(persona);
         }

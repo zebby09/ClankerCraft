@@ -19,11 +19,7 @@ import java.util.List;
 import java.util.Properties;
 
 /**
- * Minimal Google AI Studio (Gemini) client.
- * Sources for configuration (in order):
- * 1) JVM system properties: -DGOOGLE_AI_API_KEY=... and -DGEMINI_MODEL=...
- * 2) Environment variables: GOOGLE_AI_API_KEY and GEMINI_MODEL
- * 3) Config file: ${fabricConfigDir}/clankercraft-llm.properties with keys GOOGLE_AI_API_KEY and GEMINI_MODEL
+ * LLM client using Google AI Studio (Gemini) client.
  */
 public class LLMClient {
     private static final Gson GSON = new Gson();
@@ -48,26 +44,16 @@ public class LLMClient {
     public String getModel() { return model; }
 
     private static String resolveApiKey() {
-        // 1) System property
-        String v = System.getProperty("GOOGLE_AI_API_KEY");
-        if (v != null && !v.isBlank()) return v.trim();
-        // 2) Env var
-        v = System.getenv("GOOGLE_AI_API_KEY");
-        if (v != null && !v.isBlank()) return v.trim();
-        // 3) Config file
-        return readFromConfig("GOOGLE_AI_API_KEY");
+        return readFromConfig("GOOGLE_AI_STUDIO_API_KEY");
     }
 
     private static String resolveModel() {
-        String v = System.getProperty("GEMINI_MODEL");
-        if (v != null && !v.isBlank()) return v.trim();
-        v = System.getenv("GEMINI_MODEL");
-        if (v != null && !v.isBlank()) return v.trim();
-        v = readFromConfig("GEMINI_MODEL");
+        String v = readFromConfig("GEMINI_MODEL");
         if (v != null && !v.isBlank()) return v.trim();
         return null;
     }
 
+    // Read properties from config file
     private static String readFromConfig(String key) {
         try {
             Path configDir = FabricLoader.getInstance().getConfigDir();
@@ -102,7 +88,8 @@ public class LLMClient {
 
         // Try configured/default model first (v1 endpoint)
         Response r = call(body, model);
-        if (r.ok) return r.text;
+        if (r.ok)
+            return r.text;
 
         // On 404 NOT_FOUND, try common fallbacks automatically
         if (r.statusCode == 404) {
@@ -141,6 +128,7 @@ public class LLMClient {
         }
         return new Response(false, resp.statusCode(), resp.body(), null);
     }
+
 
     private static String parseText(String body) {
         JsonObject json = GSON.fromJson(body, JsonObject.class);

@@ -14,11 +14,11 @@ import java.util.Properties;
 public final class PersonalityManager {
     private PersonalityManager() {}
 
-    private static final String DEFAULT_PERSONALITY_NAME = "Grumpy";
+    private static final String DEFAULT_PERSONALITY_NAME = "clanker";
     private static volatile String cachedName;
     private static volatile String cachedText;
 
-    public static String getActivePersonalityText() {
+    public static String getActivePersonality() {
         try {
             String name = loadPersonalityName();
             if (name == null || name.isBlank()) name = DEFAULT_PERSONALITY_NAME;
@@ -34,8 +34,9 @@ public final class PersonalityManager {
         }
     }
 
+    // Load personality name from the properties file
     private static String loadPersonalityName() {
-        // Read from config file: clankercraft-llm.properties, key: CLANKER_PERSONALITY
+        // Read from: clankercraft-llm.properties --> CLANKER_PERSONALITY
         Path cfgFile = FabricLoader.getInstance().getConfigDir().resolve("clankercraft-llm.properties");
         if (Files.exists(cfgFile)) {
             Properties props = new Properties();
@@ -48,6 +49,7 @@ public final class PersonalityManager {
         return null;
     }
 
+    // Load personality text from file (saved in assets)
     private static String loadPersonalityText(String name) {
         // 1) Try user-provided file: config/clankercraft/personalities/<Name>.txt
         Path folder = FabricLoader.getInstance().getConfigDir().resolve("clankercraft").resolve("personalities");
@@ -71,13 +73,9 @@ public final class PersonalityManager {
     }
 
     private static String builtInFallback(String name) {
-        if ("Excited".equalsIgnoreCase(name)) {
-            return "System instruction: You are Clanker, an excitable, upbeat companion. " +
-                    "Respond with enthusiasm, positivity, and helpful energy. Keep responses concise but lively.";
-        }
-        // Default to Grumpy
-        return "System instruction: You are Clanker, a grumpy, sardonic companion. " +
-                "Respond curtly with dry humor and mild annoyance, but still helpful. Keep responses brief.";
+        // Default to Excited
+        return "System instruction: You are Clanker, an excitable, upbeat companion. " +
+                "Respond with enthusiasm, positivity, and helpful energy. Keep responses concise but lively.";
     }
 }
 

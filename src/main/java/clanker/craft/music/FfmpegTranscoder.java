@@ -8,7 +8,7 @@ public final class FfmpegTranscoder {
     private FfmpegTranscoder() {}
 
     /**
-     * Transcodes input audio (wav/mp3/etc.) to OGG Vorbis 44.1kHz stereo using ffmpeg on PATH.
+     * Transcodes input audio (.wav) to OGG using ffmpeg on PATH.
      * Throws IOException if ffmpeg fails or is not available.
      */
     public static void toOggVorbis(Path inputAudio, Path outputOgg) throws IOException, InterruptedException {

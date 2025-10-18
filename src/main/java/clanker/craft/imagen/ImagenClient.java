@@ -31,7 +31,7 @@ import java.util.Collections;
 import java.util.Properties;
 
 /**
- * Minimal client to call Vertex AI Imagen text-to-image and save the resulting image locally.
+ * Client to call Vertex AI Imagen text-to-image and save the resulting image locally.
  */
 public final class ImagenClient {
     private static final Gson GSON = new Gson();
@@ -47,10 +47,10 @@ public final class ImagenClient {
     private final GoogleCredentials credentials;
 
     public ImagenClient() {
-        this.projectId = readFromConfig("GCP_PROJECT_ID");
+        this.projectId = readFromConfig("GOOGLE_CLOUD_PROJECT_ID");
         String loc = readFromConfig("GCP_LOCATION");
         this.location = (loc == null || loc.isBlank()) ? "us-central1" : loc.trim();
-        String m = readFromConfig("VERTEX_IMAGEN_MODEL");
+        String m = readFromConfig("IMAGEN_MODEL");
         this.model = (m == null || m.isBlank()) ? "imagegeneration" : m.trim();
         this.credentials = loadCredentials();
         // Ensure output dir exists early to fail fast on permissions
@@ -311,7 +311,7 @@ public final class ImagenClient {
     private static String truncate(String s, int max) { return (s.length() <= max) ? s : s.substring(0, max) + "..."; }
 
     /**
-     * Updates the pointer.png painting texture with the given image file, resized to 32x32.
+     * Updates the pointer.png painting texture with the given image file, resized to 64x64.
      */
     public static void updatePaintingTexture(Path sourceImagePath) {
         try {
@@ -322,8 +322,8 @@ public final class ImagenClient {
                 return;
             }
 
-            // Resize to 32x32 (standard size for 2x2 Minecraft paintings)
-            BufferedImage resized = resizeImage(sourceImage, 32, 32);
+            // Resize to 64x64 (standard size for 4x4 Minecraft paintings)
+            BufferedImage resized = resizeImage(sourceImage, 64, 64);
 
             Path gameDir = FabricLoader.getInstance().getGameDir();
 
