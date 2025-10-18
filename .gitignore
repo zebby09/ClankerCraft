@@ -32,6 +32,8 @@ bin/
 
 run/
 
+!run/config/clankercraft.properties
+
 # java
 
 hs_err_*.log
