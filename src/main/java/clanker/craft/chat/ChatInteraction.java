@@ -10,12 +10,30 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.Entity;
+import net.minecraft.item.Items;
+import net.minecraft.registry.Registry;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
+
+
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.entity.decoration.painting.PaintingVariant;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.util.Identifier;
+import net.minecraft.world.World;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.ComponentType;
+
+
+
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -178,9 +196,26 @@ public final class ChatInteraction {
                                             // Drop a painting item at the mob's location
                                             DiazJaquetEntity diaz = findMobByUuid(world, session.mobUuid);
                                             if (diaz != null && diaz.isAlive()) {
-                                                // Just drop a regular painting - the Match variant texture is already updated
-                                                diaz.dropStack(world, new net.minecraft.item.ItemStack(net.minecraft.item.Items.PAINTING));
+
+                                                // 1. create new itemstack
+                                                ItemStack paintingStack = new ItemStack(Items.PAINTING);
+
+                                                // 2. Find the PaintingVariant that matches the prompt:
+                                                var registryManager = world.getRegistryManager();
+
+                                                var paintingRegistry = registryManager.getOrThrow(RegistryKeys.PAINTING_VARIANT);
+
+                                                var matchID = Identifier.of("match");
+
+                                                var matchOptionalEntry = paintingRegistry.getEntry(matchID);
+
+                                                RegistryEntry<PaintingVariant> matchEntry = matchOptionalEntry.orElseThrow(() -> new IllegalStateException("PaintingVariant not found: " + matchID));
+
+                                                paintingStack.set((ComponentType) DataComponentTypes.PAINTING_VARIANT, matchEntry);
+
+                                                // 3. finish
                                                 String doneMsg = "I have finished painting. Here it is!";
+                                                diaz.dropStack(world, paintingStack);
                                                 player.sendMessage(Text.literal(doneMsg));
                                                 // Speak success message via TTS
                                                 ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(doneMsg, diaz.getId()));
