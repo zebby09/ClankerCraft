@@ -1,0 +1,32 @@
+TODO's:
+
+
+1) ClankerCraft:
+
+ - Language settings --> automatically switch language for the clanker based on 'language setting' in properties or something. 
+Has to adjust the standard sentences in 'ChatInteraction.java' & make sure the LLM (and TTS) respond in the right language (personality texts might need to be adjusted too)
+
+ - Prevent TTS from pronouncing symbols like '*' etc. 
+
+
+                   *** Nice to haves ***
+
+ - ? Maybe find a way to improve the texture reload (F3+T), but automatically reloading is not that niceee :(
+
+ - ? Right now AI paintings & music discs overwrite existing painting and disc (4x4 'pointer' painting & disc '13' respectively). This allows for just one generation for each, so maybe allow for multiple generations/variants and custom painting sizes (2x2, 4x2 etc.)  
+
+ - ? Maybe spawn Clankers naturally in villages or some shit --> maybe with different personalities (and appearance using oxidation levels for the copper golem?) 
+
+ - ? Maybe Fix Clanker spawn egg textures (nice to have, doesn't matter that much) 
+
+ - ? When a session is ended during conversation and player spawns back in, the mob remains frozen (but not in conversation). 
+
+
+
+
+2) Assignment 
+
+ - Video trailer 
+
+ - Technical setup instructions for the mod 
+
