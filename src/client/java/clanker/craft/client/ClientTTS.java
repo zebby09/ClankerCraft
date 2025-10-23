@@ -145,15 +145,40 @@ public final class ClientTTS {
         return Config.ttsApiKey();
     }
 
+    /**
+     * Sanitize text for TTS by removing or replacing symbols that shouldn't be pronounced.
+     * This includes markdown formatting symbols, special characters, and other non-verbal elements.
+     */
+    private static String sanitizeTextForTts(String text) {
+        if (text == null || text.isEmpty()) return text;
+        
+        // Remove markdown-style emphasis markers (*, _, ~, `)
+        String sanitized = text.replaceAll("[*_~`]", "");
+        
+        // Remove other common symbols that shouldn't be spoken
+        sanitized = sanitized.replaceAll("[#@$%^&+=<>\\[\\]{}|\\\\]", "");
+        
+        // Replace multiple spaces with single space
+        sanitized = sanitized.replaceAll("\\s+", " ");
+        
+        // Trim leading/trailing whitespace
+        sanitized = sanitized.trim();
+        
+        return sanitized;
+    }
+
     private PcmAudio synthesizePcm(String text) throws Exception {
         String apiKey = resolveTtsKey();
         if (apiKey == null || apiKey.isBlank()) throw new IllegalStateException("No GOOGLE_TTS_API_KEY configured (you can also set GOOGLE_CLOUD_API_KEY). See clankercraft-llm.properties");
+
+        // Sanitize text to remove symbols that shouldn't be pronounced
+        String sanitizedText = sanitizeTextForTts(text);
 
         // Cloud Text-to-Speech v1 request for 24 kHz, mono, 16-bit PCM (LINEAR16)
         int rate = 24000;
         JsonObject body = new JsonObject();
         JsonObject input = new JsonObject();
-        input.addProperty("text", text);
+        input.addProperty("text", sanitizedText);
         body.add("input", input);
 
         JsonObject voice = new JsonObject();
