@@ -4,6 +4,7 @@ import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.gson.*;
 import net.fabricmc.loader.api.FabricLoader;
+import clanker.craft.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,10 +37,10 @@ public final class Lyria2Client {
     private final String model;
 
     public Lyria2Client() {
-        this.projectId = readFromConfig("GOOGLE_CLOUD_PROJECT_ID");
-        String loc = readFromConfig("GCP_LOCATION");
+        this.projectId = Config.gcpProjectId();
+        String loc = Config.gcpLocationOrDefault("us-central1");
         this.location = (loc == null || loc.isBlank()) ? "us-central1" : loc.trim();
-        String m = readFromConfig("VERTEX_LYRIA_MODEL");
+        String m = Config.lyriaModelOrDefault("lyria-002");
         this.model = (m == null || m.isBlank()) ? "lyria-002" : m.trim();
         this.credentials = loadCredentials();
         try { Files.createDirectories(getOutputDir()); } catch (Exception ignored) {}
@@ -133,6 +134,8 @@ public final class Lyria2Client {
     }
 
     private static String readFromConfig(String key) {
+        // Deprecated: use Config helper
+
         try {
             Path configDir = FabricLoader.getInstance().getConfigDir();
             Path file = configDir.resolve("clankercraft-llm.properties");
@@ -146,7 +149,7 @@ public final class Lyria2Client {
 
     private GoogleCredentials loadCredentials() {
         try {
-            String path = readFromConfig("GOOGLE_APPLICATION_CREDENTIALS");
+            String path = Config.googleCredentialsPath();
             GoogleCredentials creds;
             if (path != null && !path.isBlank()) {
                 try (InputStream in = Files.newInputStream(Path.of(path))) {

@@ -5,6 +5,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.fabricmc.loader.api.FabricLoader;
+import clanker.craft.config.Config;
 
 import java.io.InputStream;
 import java.net.URI;
@@ -44,30 +45,16 @@ public class LLMClient {
     public String getModel() { return model; }
 
     private static String resolveApiKey() {
-        return readFromConfig("GOOGLE_AI_STUDIO_API_KEY");
+        return Config.geminiApiKey();
     }
 
     private static String resolveModel() {
-        String v = readFromConfig("GEMINI_MODEL");
-        if (v != null && !v.isBlank()) return v.trim();
-        return null;
+        return Config.geminiModelOrDefault(null);
     }
 
-    // Read properties from config file
+    // Deprecated: use Config helper
     private static String readFromConfig(String key) {
-        try {
-            Path configDir = FabricLoader.getInstance().getConfigDir();
-            Path file = configDir.resolve("clankercraft-llm.properties");
-            if (!Files.exists(file)) return null;
-            Properties props = new Properties();
-            try (InputStream in = Files.newInputStream(file)) {
-                props.load(in);
-            }
-            String v = props.getProperty(key);
-            return (v == null || v.isBlank()) ? null : v.trim();
-        } catch (Throwable ignored) {
-            return null;
-        }
+        return clanker.craft.config.Config.get(key);
     }
 
     /**

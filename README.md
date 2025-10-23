@@ -1,47 +1,110 @@
-# **ClankerCraft**
-Welcome to ClankerCraft, the Minecraft mod that cranks your game up with AI magic! Cooler mobs, better immersion, and a few wild surprises make your world feel way more alive. Made with love and passion by some truly amazing authors who think Minecraft could use a little more... FUN! Dive in and see what magic the AI has in store!
+# ClankerCraft
 
+A Minecraft Fabric mod that brings AI-powered mobs and creative tools to your world. Chat with friendly companions, generate custom paintings, and create music—all powered by Google's AI services.
 
-This project is a Minecraft mod built using the Fabric toolchain. The build.gradle and gradle.properties files manage the project's dependencies and build configurations. The mod is written in Java 21 and uses Gradle for building.
-The project is structured as a standard Fabric mod with client and server-side initializers. The main entry point for the mod is the ClankerCraft class, which initializes all the different components of the mod.
+---
 
-## **Subcomponents**
+## Components
 
-### 1) **New Mob: The Clanker**
-ClankerCraft introduces a new mob to the game called '_Clanker_'. This mob is a friendly and interactive companion that players can converse with. The _Clanker_ entity is based on the vanilla Illusioner mob but with its hostile AI removed. Instead, it has custom AI that allows it to interact with players in a conversational manner.
+### The Clanker Mob
+A friendly companion mob that players can talk to. Based on the Copper Golem with all hostile behaviors removed. Spawn using the Clanker spawn egg.
 
-### 2) **Conversation System**
-The conversation system is the core of the ClankerCraft mod. It allows players to have natural language conversations with the _Clanker_ mob. The conversation is initiated by typing "@clanker" in the chat. Once a conversation is started, the player can chat with the mob as if it were another player. The conversation can be ended by typing "@byebye".
+### Chat System
+Start conversations by typing `@clanker` in chat. The mob responds using AI and remembers your conversation. End with `@byebye`. Each player gets their own conversation session, so multiple players can chat with different Clankers at once.
 
-The conversation system is managed by the ChatInteraction class, which handles all the logic for parsing player messages, managing conversation state, and sending responses back to the player. Each player has their own conversation session with the _Clanker_ mob, which allows for multiple players to be conversing with different mobs at the same time.
+### AI Conversations
+Powered by Google's Gemini language model. Messages are sent to the Gemini API with conversation history, and the model generates natural responses. Customize the Clanker's personality using text files—choose from Excited, Grumpy, or Robotic, or create your own.
 
-### 3) **LLM Interaction**
-The LLM interaction is what allows the _Clanker_ mob to have intelligent and engaging conversations with players. The mod uses the Gemini large language model from Google AI Studio to generate the mob's responses. The LLMClient class handles all the communication with the Gemini API.
+### Text-to-Speech
+Clanker's responses are spoken aloud using Google Cloud Text-to-Speech with Chirp 3 HD voices. Audio plays positionally in 3D space, so you hear the voice coming from the Clanker's location.
 
-When a player sends a message to the Clanker mob, the message is sent to the Gemini API along with the conversation history. The Gemini model then generates a response, which is sent back to the player as a chat message from the mob. The mod also includes a personality system that allows the mob's personality to be customized. The personality is defined in a text file and is used to steer the LLM's responses.
+### Image Generation
+Create custom paintings by typing `@makepainting <prompt>` during a conversation. Uses Vertex AI's Imagen model to generate images from your description. The image becomes a painting texture in your world.
 
-### 4) **TTS Implementation**
-To make the conversation with the _Clanker_ mob more immersive, the mod includes a Text-to-Speech (TTS) implementation. When the mob responds to a player, its message is converted to speech and played back to the player. The TTS implementation uses the Google Cloud Text-to-Speech API to generate the audio. The audio model chosen for this is based on one of the available 'Chirp 3 HD' voices. These voices were chosen because they offer high-quality audio, low-latency streaming, and natural-sounding speech, incorporating human disfluencies, emotional range, and accurate intonation. 
+### Music Generation
+Generate music discs by typing `@makemusic <prompt>`. Uses Vertex AI's Lyria 2 model to create music based on your description. The audio is transcoded to OGG format (requires FFmpeg) and saved as a playable music disc.
 
-The ClientTTS class handles all the communication with the TTS API and the playback of the audio. The audio is played back in-game using OpenAL, which allows for positional audio. This means that the sound of the mob's voice will come from its location in the game world.
+---
 
-### 5) **Image Generation**
-ClankerCraft also features an image generation system that allows players to create custom paintings within the game. This feature is triggered by typing "@makepainting" in the chat, followed by a prompt. The mod then uses Vertex AI's Imagen model to generate an image based on the provided prompt.
+## AI and Cloud Services
 
-The generated image is then saved as a PNG file and applied as a texture to a painting in the game. The ImagenClient class manages the interaction with the Imagen API, while the ChatInteraction class handles the in-game command and the process of updating the painting texture.
+ClankerCraft uses the following Google AI services:
 
-### 6) **Sound Generation**
-In addition to the TTS implementation, the mod also includes a sound generation feature that allows the _Clanker_ mob to create music. This feature is triggered by typing "@makemusic" in the chat followed by a prompt. The mod then uses the Lyria 2 model from Vertex AI API through google cloud to generate a piece of music based on the prompt.
+- **Gemini** (Google AI Studio) — Powers natural language conversations
+- **Google Cloud Text-to-Speech** — Converts text to spoken audio with Chirp 3 HD voices
+- **Vertex AI Imagen** — Generates images for custom paintings
+- **Vertex AI Lyria 2** — Creates music for custom discs
 
-The generated music is then transcoded to the OGG Vorbis format and saved as a music disc in the game. The player can then play the music disc in a jukebox to listen to the generated music. The Lyria2Client and FfmpegTranscoder classes handle all the logic for generating and transcoding the music.
+You'll need API keys for these services. All keys are configured in a single properties file.
 
+---
 
+## Setup Guide
 
-## **AI and Cloud Services**
-The ClankerCraft mod uses a variety of AI and cloud services to power its features. These services include:
-- _Gemini_: The Gemini large language model from Google AI Studio is used to generate the _Clanker_ mob's conversational responses.
-- _Google Cloud Text-to-Speech_: The Google Cloud Text-to-Speech API is used to convert the mob's chat messages to speech.
-- _Vertex AI_: The Vertex AI platform from Google Cloud is used to host the Lyria 2 model, which is used to generate music.
+### Prerequisites
+- Java 21
+- Minecraft with Fabric Loader and Fabric API installed
+- FFmpeg installed and available in your system PATH (required for music generation)
 
-To use the AI-powered features of the mod, you will need to provide your own API keys for these services. The API keys can be configured in the clankercraft-llm.properties file in the Fabric config directory.
-It is also important to note that the conversion of the .wav file created by Lyria2 to a .ogg file, which minecraft uses, requires FFMPEG to be installed on PATH. 
+### Step 1: Create Your Config File
+1. Find the sample config file: `clankercraft-llm.sample.properties` in this repository
+2. Copy it to your Minecraft config directory: `<minecraft>/config/clankercraft-llm.properties`
+3. Open the file in a text editor
+
+### Step 2: Get API Keys
+
+**For Chat**
+1. Go to [Google AI Studio](https://aistudio.google.com/)
+2. Create an API key
+3. Add it to your config file:
+   ```
+   GOOGLE_AI_STUDIO_API_KEY=your_key_here
+   ```
+
+**For TTS**
+1. Enable the Google Cloud Text-to-Speech API in your Google Cloud Console
+2. Create an API key
+3. Add it to your config file:
+   ```
+   GOOGLE_TTS_API_KEY=your_key_here
+   ```
+
+**For Images and Music**
+1. Create a Google Cloud project
+2. Enable Vertex AI API
+3. Create a service account and download the JSON credentials file
+4. Add to your config file:
+   ```
+   GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/credentials.json
+   GOOGLE_CLOUD_PROJECT_ID=your-project-id
+   GCP_LOCATION=us-central1
+   ```
+
+### Step 3: Launch Minecraft
+1. Start Minecraft with the ClankerCraft mod installed
+2. Check the console for confirmation messages about enabled features
+
+### Step 4: Test the Features
+
+**Test Chat:**
+- Give yourself a Clanker spawn egg: `/give @s clankercraft:clanker_spawn_egg`
+- Spawn a Clanker
+- Type `@clanker hello` in chat
+- You should see a response
+
+**Test TTS:**
+- If configured, you'll hear the Clanker speak its responses
+
+**Test Paintings:**
+- Start a conversation with `@clanker`
+- Type `@makepainting a sunset over mountains`
+- Wait for the success message
+- Press `F3 + T` to reload textures
+- Place a painting to see your generated image
+
+**Test Music:**
+- Start a conversation with `@clanker`
+- Type `@makemusic upbeat electronic dance`
+- Wait for the success message
+- Pick up the generated disc
+- Place it in a jukebox to play

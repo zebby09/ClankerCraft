@@ -32,7 +32,12 @@ bin/
 
 run/
 
-!run/config/clankercraft.properties
+# local dev configs should never be committed
+run/config/*.properties
+
+# ignore common service account/credential JSONs (but not project assets)
+*service-account*.json
+*credentials*.json
 
 # java
 

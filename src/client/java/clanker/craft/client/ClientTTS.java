@@ -3,6 +3,7 @@ package clanker.craft.client;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import net.fabricmc.loader.api.FabricLoader;
+import clanker.craft.config.Config;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.text.Text;
@@ -139,14 +140,14 @@ public final class ClientTTS {
         if (p != null) p.sendMessage(Text.literal(msg), false);
     }
 
-    // Prefer dedicated TTS key; no fallback to AI Studio key
+    // Prefer dedicated TTS key; accept aliases via Config
     private static String resolveTtsKey() {
-        return resolve("GOOGLE_CLOUD_API_KEY");
+        return Config.ttsApiKey();
     }
 
     private PcmAudio synthesizePcm(String text) throws Exception {
         String apiKey = resolveTtsKey();
-        if (apiKey == null || apiKey.isBlank()) throw new IllegalStateException("No GOOGLE_TTS_API_KEY configured for TTS");
+        if (apiKey == null || apiKey.isBlank()) throw new IllegalStateException("No GOOGLE_TTS_API_KEY configured (you can also set GOOGLE_CLOUD_API_KEY). See clankercraft-llm.properties");
 
         // Cloud Text-to-Speech v1 request for 24 kHz, mono, 16-bit PCM (LINEAR16)
         int rate = 24000;
@@ -210,6 +211,10 @@ public final class ClientTTS {
     private record PcmAudio(byte[] data, int sampleRate, int channels) {}
 
     private static String resolve(String key) {
+        // Prefer centralized config
+        String v0 = Config.get(key);
+        if (v0 != null) return v0;
+
         // JVM property
         String v = System.getProperty(key);
         if (v != null && !v.isBlank()) return v.trim();
