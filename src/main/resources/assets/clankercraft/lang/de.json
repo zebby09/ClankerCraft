@@ -1,0 +1,30 @@
+{
+  "clanker.greeting": "Was geht, mein Clanker!",
+  "clanker.farewell": "Tschüss!",
+  "clanker.no_nearby": "Kein Clanker in der Nähe...",
+  "clanker.gone": "Clanker ist nicht mehr hier. Konversation beendet.",
+  "clanker.busy": "Clanker ist beschäftigt. Bitte warten...",
+  "clanker.thinking": "Clanker denkt nach... bitte warten.",
+  "clanker.response_prefix": "Clanker: ",
+  
+  "clanker.painting.start": "Okay toll! Ich erstelle ein Gemälde von '{0}'...",
+  "clanker.painting.done": "Ich habe das Gemälde fertig! Hier ist es!",
+  "clanker.painting.failed": "Clanker konnte das Gemälde nicht erstellen: {0}",
+  "clanker.painting.texture_failed": "Ich konnte das Bild erstellen, aber die Textur konnte nicht aktualisiert werden: {0}",
+  "clanker.painting.reload_textures": "Drücken Sie F3+T, um Texturen neu zu laden und das Gemälde zu sehen",
+  "clanker.painting.prompt_required": "Geben Sie mir eine Beschreibung wie folgt:  @MakePainting <Beschreibung>",
+  
+  "clanker.music.start": "Okay toll! Ich komponiere {0} Musik!",
+  "clanker.music.done": "Ich bin fertig mit Komponieren! Hier ist deine Musikdisk!",
+  "clanker.music.prompt_required": "Geben Sie mir eine Beschreibung wie folgt:  @makemusic <Beschreibung>",
+  "clanker.music.failed": "!!! Fehler beim Vorbereiten der Disk-Audio. Stellen Sie sicher, dass ffmpeg installiert ist und sich in PATH befindet",
+  
+  "clanker.config.llm_not_configured": "!!! LLM nicht konfiguriert. Geben Sie GOOGLE_AI_API_KEY über Umgebungsvariable, JVM -DGOOGLE_AI_API_KEY oder erstellen Sie {0}. Dann neu starten.",
+  "clanker.config.imagen_not_configured": "!!! Imagen nicht konfiguriert. Stellen Sie sicher, dass GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID und GCP_LOCATION in {0} gesetzt sind",
+  "clanker.config.lyria_not_configured": "!!! Lyria nicht konfiguriert. Stellen Sie sicher, dass GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID und GCP_LOCATION in {0} gesetzt sind",
+  
+  "clanker.tts.quota_exceeded": "TTS-Kontingent überschritten. Nur Chat-Wiedergabe.",
+  "clanker.tts.quota_exceeded_full": "TTS-Kontingent überschritten. Audio wird heute übersprungen.",
+  "clanker.tts.unavailable": "TTS für diese Antwort nicht verfügbar.",
+  "clanker.tts.error": "TTS-Fehler: {0}"
+}

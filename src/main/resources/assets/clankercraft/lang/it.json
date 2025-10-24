@@ -1,0 +1,30 @@
+{
+  "clanker.greeting": "Come va, mio clanker!",
+  "clanker.farewell": "Ciao ciao!",
+  "clanker.no_nearby": "Nessun Clanker nelle vicinanze...",
+  "clanker.gone": "Clanker non è più qui. Conversazione terminata.",
+  "clanker.busy": "Clanker è occupato. Per favore aspetta...",
+  "clanker.thinking": "Clanker sta pensando... per favore aspetta.",
+  "clanker.response_prefix": "Clanker: ",
+  
+  "clanker.painting.start": "Va bene! Sto creando un dipinto di '{0}'...",
+  "clanker.painting.done": "Ho finito il dipinto! Eccolo!",
+  "clanker.painting.failed": "Clanker non è riuscito a creare il dipinto: {0}",
+  "clanker.painting.texture_failed": "Sono riuscito a creare l'immagine, ma non sono riuscito ad aggiornare la texture: {0}",
+  "clanker.painting.reload_textures": "Premi F3+T per ricaricare le texture e vedere il dipinto",
+  "clanker.painting.prompt_required": "Dammi una descrizione così:  @MakePainting <descrizione>",
+  
+  "clanker.music.start": "Va bene! Sto componendo musica {0}!",
+  "clanker.music.done": "Ho finito di comporre! Ecco il tuo disco musicale!",
+  "clanker.music.prompt_required": "Dammi una descrizione così:  @makemusic <descrizione>",
+  "clanker.music.failed": "!!! Errore nella preparazione dell'audio del disco. Assicurati che ffmpeg sia installato e in PATH",
+  
+  "clanker.config.llm_not_configured": "!!! LLM non configurato. Fornisci GOOGLE_AI_API_KEY tramite variabile d'ambiente, JVM -DGOOGLE_AI_API_KEY, o crea {0}. Poi riavvia.",
+  "clanker.config.imagen_not_configured": "!!! Imagen non configurato. Assicurati che GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID e GCP_LOCATION siano impostati in {0}",
+  "clanker.config.lyria_not_configured": "!!! Lyria non configurato. Assicurati che GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID e GCP_LOCATION siano impostati in {0}",
+  
+  "clanker.tts.quota_exceeded": "Quota TTS superata. Riproduzione solo chat.",
+  "clanker.tts.quota_exceeded_full": "Quota TTS superata. L'audio verrà saltato oggi.",
+  "clanker.tts.unavailable": "TTS non disponibile per questa risposta.",
+  "clanker.tts.error": "Errore TTS: {0}"
+}

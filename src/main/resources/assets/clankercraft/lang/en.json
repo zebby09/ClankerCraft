@@ -1,0 +1,30 @@
+{
+  "clanker.greeting": "What's up my clanker!",
+  "clanker.farewell": "Bye bye!",
+  "clanker.no_nearby": "No Clanker nearby...",
+  "clanker.gone": "Clanker is no longer here. Conversation ended.",
+  "clanker.busy": "Clanker is busy. Please wait...",
+  "clanker.thinking": "Clanker is thinking... please wait.",
+  "clanker.response_prefix": "Clanker: ",
+  
+  "clanker.painting.start": "Okay great! I'm creating a painting for '{0}'...",
+  "clanker.painting.done": "I have finished painting. Here it is!",
+  "clanker.painting.failed": "Clanker failed to make painting: {0}",
+  "clanker.painting.texture_failed": "I managed to create the image, but failed to update texture: {0}",
+  "clanker.painting.reload_textures": "Press F3+T to reload textures to see painting",
+  "clanker.painting.prompt_required": "Give me a prompt like so:  @MakePainting <prompt>",
+  
+  "clanker.music.start": "Okay great! I'm composing some {0} Music!",
+  "clanker.music.done": "I'm done composing! here's your music disc!",
+  "clanker.music.prompt_required": "Give me a prompt like so:  @makemusic <prompt>",
+  "clanker.music.failed": "!!! Failed to prepare disc audio. Make sure ffmpeg is installed and on PATH",
+  
+  "clanker.config.llm_not_configured": "!!! LLM not configured. Provide GOOGLE_AI_API_KEY via env var, JVM -DGOOGLE_AI_API_KEY, or create {0}. Then restart.",
+  "clanker.config.imagen_not_configured": "!!! Imagen not configured. Make sure GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID and GCP_LOCATION are set in {0}",
+  "clanker.config.lyria_not_configured": "!!! Lyria not configured. Ensure GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID and GCP_LOCATION are set in {0}",
+  
+  "clanker.tts.quota_exceeded": "TTS quota exceeded. Playing chat only.",
+  "clanker.tts.quota_exceeded_full": "TTS quota exceeded. Further audio will be skipped today.",
+  "clanker.tts.unavailable": "TTS unavailable for this response.",
+  "clanker.tts.error": "TTS error: {0}"
+}

@@ -139,4 +139,11 @@ public final class Config {
     public static String ttsPitch() { return get("TTS_PITCH"); }
 
     public static String personalityName() { return get("CLANKER_PERSONALITY"); }
+
+    public static String languageOrDefault(String def) {
+        return getOrDefault(def,
+                "CLANKER_LANGUAGE",
+                "LANGUAGE"
+        );
+    }
 }

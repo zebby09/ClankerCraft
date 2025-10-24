@@ -9,6 +9,9 @@ import clanker.craft.music.Lyria2Client;
 import clanker.craft.entity.ClankerEntity;
 import clanker.craft.personality.PersonalityManager;
 
+// I18N
+import clanker.craft.i18n.LanguageManager;
+
 // NETWORKING
 import clanker.craft.network.TTSSpeakS2CPayload;
 
@@ -101,7 +104,7 @@ public final class ChatInteraction {
                             .orElse(null);
 
                     if (nearest == null) {
-                        player.sendMessage(Text.literal("No Clanker nearby..."));
+                        player.sendMessage(Text.literal(LanguageManager.get("clanker.no_nearby")));
                         return;
                     }
 
@@ -129,7 +132,7 @@ public final class ChatInteraction {
                             mob.setAiDisabled(false);
                         }
                         // Speak bye message via TTS
-                        String byeMsg = "Bye bye!";
+                        String byeMsg = LanguageManager.get("clanker.farewell");
                         player.sendMessage(Text.literal(byeMsg));
                         int startEntityId = mob.getId();
                         ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(byeMsg, startEntityId));
@@ -145,7 +148,7 @@ public final class ChatInteraction {
                 ClankerEntity mob = findMobByUuid(world, session.mobUuid);
                 if (mob == null || !mob.isAlive()) {
                     SESSIONS.remove(player.getUuid());
-                    player.sendMessage(Text.literal("Clanker is no longer here. Conversation ended."));
+                    player.sendMessage(Text.literal(LanguageManager.get("clanker.gone")));
                     return;
                 }
 
@@ -156,20 +159,20 @@ public final class ChatInteraction {
                     String prompt = trimmed.substring(PAINT_TRIGGER.length()).trim();
                     if (!IMAGEN.isEnabled()) {
                         String cfgPath = String.valueOf(FabricLoader.getInstance().getConfigDir().resolve("clankercraft-llm.properties").toAbsolutePath());
-                        player.sendMessage(Text.literal("!!! Imagen not configured. Make sure GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID and GCP_LOCATION are set in " + cfgPath));
+                        player.sendMessage(Text.literal(LanguageManager.format("clanker.config.imagen_not_configured", cfgPath)));
                         return;
                     }
                     if (prompt.isEmpty()) {
-                        player.sendMessage(Text.literal("Give me a prompt like so:  @MakePainting <prompt>"));
+                        player.sendMessage(Text.literal(LanguageManager.get("clanker.painting.prompt_required")));
                         return;
                     }
                     if (session.busy) {
-                        player.sendMessage(Text.literal("Clanker is busy. Please wait..."));
+                        player.sendMessage(Text.literal(LanguageManager.get("clanker.busy")));
                         return;
                     }
                     session.busy = true;
                     // Speak start message via TTS
-                    String startMsg = "Okay great! I'm creating a painting for '" + prompt + "'...";
+                    String startMsg = LanguageManager.format("clanker.painting.start", prompt);
                     player.sendMessage(Text.literal(startMsg));
                     int startEntityId = mob.getId();
                     ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(startMsg, startEntityId));
@@ -186,11 +189,11 @@ public final class ChatInteraction {
                                 server.execute(() -> {
                                     session.busy = false;
                                     if (result.startsWith("(error) ")) {
-                                        player.sendMessage(Text.literal("Clanker failed to make painting: " + result.substring(8)));
+                                        player.sendMessage(Text.literal(LanguageManager.format("clanker.painting.failed", result.substring(8))));
                                     } else {
                                         try {
                                             ImagenClient.updatePaintingTexture(java.nio.file.Path.of(result));
-                                            player.sendMessage(Text.literal("Press F3+T to reload textures to see painting"));
+                                            player.sendMessage(Text.literal(LanguageManager.get("clanker.painting.reload_textures")));
 
                                             // Drop a painting item at the mob's location
                                             ClankerEntity clanker = findMobByUuid(world, session.mobUuid);
@@ -208,14 +211,14 @@ public final class ChatInteraction {
                                                 paintingStack.set((ComponentType) DataComponentTypes.PAINTING_VARIANT, matchEntry);
 
                                                 // 3. Finish and drop painting for the player
-                                                String doneMsg = "I have finished painting. Here it is!";
+                                                String doneMsg = LanguageManager.get("clanker.painting.done");
                                                 // Speak success message via TTS
                                                 clanker.dropStack(world, paintingStack);
                                                 player.sendMessage(Text.literal(doneMsg));
                                                 ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(doneMsg, clanker.getId()));
                                             }
                                         } catch (Exception e) {
-                                            player.sendMessage(Text.literal("I managed to create the image, but failed to update texture: " + e.getMessage()));
+                                            player.sendMessage(Text.literal(LanguageManager.format("clanker.painting.texture_failed", e.getMessage())));
                                         }
                                     }
                                 });
@@ -229,21 +232,21 @@ public final class ChatInteraction {
                     String prompt = trimmed.substring(MUSIC_TRIGGER.length()).trim();
                     if (!LYRIA.isEnabled()) {
                         String cfgPath = String.valueOf(FabricLoader.getInstance().getConfigDir().resolve("clankercraft-llm.properties").toAbsolutePath());
-                        player.sendMessage(Text.literal("!!! Lyria not configured. Ensure GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID and GCP_LOCATION are set in " + cfgPath));
+                        player.sendMessage(Text.literal(LanguageManager.format("clanker.config.lyria_not_configured", cfgPath)));
                         return;
                     }
                     if (prompt.isEmpty()) {
-                        player.sendMessage(Text.literal("Give me a prompt like so:  @makemusic <prompt>"));
+                        player.sendMessage(Text.literal(LanguageManager.get("clanker.music.prompt_required")));
                         return;
                     }
                     if (session.busy) {
-                        player.sendMessage(Text.literal("Clanker is busy. Please wait..."));
+                        player.sendMessage(Text.literal(LanguageManager.get("clanker.busy")));
                         return;
                     }
                     session.busy = true;
 
                     // Speak start message via TTS
-                    String startMsg = "Okay great! I'm composing some " + prompt + " Music!";
+                    String startMsg = LanguageManager.format("clanker.music.start", prompt);
                     player.sendMessage(Text.literal(startMsg));
                     int startEntityId = mob.getId();
                     ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(startMsg, startEntityId));
@@ -271,7 +274,7 @@ public final class ChatInteraction {
                                 server.execute(() -> {
                                     session.busy = false;
                                     if (result.startsWith("ERR|")) {
-                                        player.sendMessage(Text.literal("!!! Failed to prepare disc audio. Make sure ffmpeg is installed and on PATH" + result.substring(4)));
+                                        player.sendMessage(Text.literal(LanguageManager.get("clanker.music.failed") + result.substring(4)));
                                     } else {
                                         String[] parts = result.split("\\|", 4);
                                         String oggPath = parts.length > 1 ? parts[1] : "";
@@ -283,7 +286,7 @@ public final class ChatInteraction {
                                         if (clanker != null && clanker.isAlive()) {
                                             clanker.dropStack(world, new net.minecraft.item.ItemStack(net.minecraft.item.Items.MUSIC_DISC_13));
                                             // Speak success message via TTS
-                                            String doneMsg = "I'm done composing! here's your music disc!";
+                                            String doneMsg = LanguageManager.get("clanker.music.done");
                                             player.sendMessage(Text.literal(doneMsg));
                                             ServerPlayNetworking.send(player, new TTSSpeakS2CPayload(doneMsg, clanker.getId()));
                                         }
@@ -298,12 +301,12 @@ public final class ChatInteraction {
                 session.appendUser(trimmed);
                 if (!LLM.isEnabled()) {
                     String cfgPath = String.valueOf(FabricLoader.getInstance().getConfigDir().resolve("clankercraft-llm.properties").toAbsolutePath());
-                    player.sendMessage(Text.literal("!!! LLM not configured. Provide GOOGLE_AI_API_KEY via env var, JVM -DGOOGLE_AI_API_KEY, or create " + cfgPath + ". Then restart."));
+                    player.sendMessage(Text.literal(LanguageManager.format("clanker.config.llm_not_configured", cfgPath)));
                     return;
                 }
 
                 if (session.busy) {
-                    player.sendMessage(Text.literal("Clanker is thinking... please wait."));
+                    player.sendMessage(Text.literal(LanguageManager.get("clanker.thinking")));
                     return;
                 }
                 session.busy = true;
@@ -321,7 +324,7 @@ public final class ChatInteraction {
                             server.execute(() -> {
                                 session.appendModel(reply);
                                 session.busy = false;
-                                player.sendMessage(Text.literal("Clanker: " + reply));
+                                player.sendMessage(Text.literal(LanguageManager.get("clanker.response_prefix") + reply));
 
                                 // Also trigger client-side TTS playback using a custom payload with entity position context
                                 ClankerEntity m = findMobByUuid(world, session.mobUuid);
@@ -386,7 +389,7 @@ public final class ChatInteraction {
         s.awaitingFreeze = true;
         s.lastPathTick = tickCounter;
         // Send greeting as the initial model line and to the player, and speak it via TTS
-        String greeting = "What's up my clanker!";
+        String greeting = LanguageManager.get("clanker.greeting");
         s.appendModel(greeting);
         SESSIONS.put(player.getUuid(), s);
         player.sendMessage(Text.literal(greeting));

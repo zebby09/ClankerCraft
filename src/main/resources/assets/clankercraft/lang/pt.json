@@ -1,0 +1,30 @@
+{
+  "clanker.greeting": "E aí, meu clanker!",
+  "clanker.farewell": "Tchau tchau!",
+  "clanker.no_nearby": "Nenhum Clanker por perto...",
+  "clanker.gone": "Clanker não está mais aqui. Conversa encerrada.",
+  "clanker.busy": "Clanker está ocupado. Por favor aguarde...",
+  "clanker.thinking": "Clanker está pensando... por favor aguarde.",
+  "clanker.response_prefix": "Clanker: ",
+  
+  "clanker.painting.start": "Ótimo! Estou criando uma pintura de '{0}'...",
+  "clanker.painting.done": "Terminei a pintura! Aqui está!",
+  "clanker.painting.failed": "Clanker falhou ao criar a pintura: {0}",
+  "clanker.painting.texture_failed": "Consegui criar a imagem, mas falhei ao atualizar a textura: {0}",
+  "clanker.painting.reload_textures": "Pressione F3+T para recarregar texturas e ver a pintura",
+  "clanker.painting.prompt_required": "Me dê uma descrição assim:  @MakePainting <descrição>",
+  
+  "clanker.music.start": "Ótimo! Estou compondo música {0}!",
+  "clanker.music.done": "Terminei de compor! Aqui está seu disco de música!",
+  "clanker.music.prompt_required": "Me dê uma descrição assim:  @makemusic <descrição>",
+  "clanker.music.failed": "!!! Falha ao preparar o áudio do disco. Certifique-se de que o ffmpeg está instalado e no PATH",
+  
+  "clanker.config.llm_not_configured": "!!! LLM não configurado. Forneça GOOGLE_AI_API_KEY via variável de ambiente, JVM -DGOOGLE_AI_API_KEY, ou crie {0}. Depois reinicie.",
+  "clanker.config.imagen_not_configured": "!!! Imagen não configurado. Certifique-se de que GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID e GCP_LOCATION estão definidos em {0}",
+  "clanker.config.lyria_not_configured": "!!! Lyria não configurado. Certifique-se de que GOOGLE_APPLICATION_CREDENTIALS, GCP_PROJECT_ID e GCP_LOCATION estão definidos em {0}",
+  
+  "clanker.tts.quota_exceeded": "Cota de TTS excedida. Reproduzindo apenas chat.",
+  "clanker.tts.quota_exceeded_full": "Cota de TTS excedida. O áudio será ignorado hoje.",
+  "clanker.tts.unavailable": "TTS indisponível para esta resposta.",
+  "clanker.tts.error": "Erro de TTS: {0}"
+}
